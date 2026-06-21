@@ -300,24 +300,22 @@ export default function ConsentPage() {
 
           {/* 서명 */}
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', marginBottom: 20 }}>
-            <div style={{ flex: '0 0 140px' }}>
-              <div style={{ marginBottom: 12 }}>
-                <label style={labelStyle}>계약일자</label>
-                {capturing
-                  ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{contractDate}</div>
-                  : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={{ ...fieldStyle, fontSize: 13 }} />}
-              </div>
-              <div>
-                <label style={labelStyle}>고객 성명</label>
-                {capturing
-                  ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{customerName}</div>
-                  : <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="성명" style={fieldStyle} />}
-              </div>
+            <div style={{ flex: '0 0 150px' }}>
+              <label style={labelStyle}>계약일자</label>
+              {capturing
+                ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{contractDate}</div>
+                : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={{ ...fieldStyle, fontSize: 13 }} />}
+            </div>
+            <div style={{ flex: '0 0 120px' }}>
+              <label style={labelStyle}>고객 성명</label>
+              {capturing
+                ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{customerName}</div>
+                : <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="성명" style={fieldStyle} />}
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>서명</label>
-              <div style={{ border: '2px solid #ddd', borderRadius: 8, overflow: 'hidden', position: 'relative', background: '#fafafa', height: 100 }}>
-                <canvas ref={canvasRef} width={400} height={100}
+              <div style={{ border: '2px solid #ddd', borderRadius: 8, overflow: 'hidden', position: 'relative', background: '#fafafa', height: 80 }}>
+                <canvas ref={canvasRef} width={400} height={80}
                   onMouseDown={(e) => { setPenMode('sign'); startDraw(e) }}
                   onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
                   onTouchStart={(e) => { setPenMode('sign'); startDraw(e) }}
