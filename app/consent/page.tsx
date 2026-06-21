@@ -233,7 +233,7 @@ export default function ConsentPage() {
 
         {/* 헤더 */}
         <div style={{ background: '#1E90FF', padding: '28px 36px', marginTop: current.logo_url ? 16 : 0 }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{current.title}</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{current.title}</div>
         </div>
 
         <div style={{ padding: '32px 36px' }}>
