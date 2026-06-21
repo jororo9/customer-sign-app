@@ -70,7 +70,6 @@ export default function ConsentPage() {
   }
 
   function startDraw(e: any) {
-    if (penMode !== 'sign') return
     const canvas = canvasRef.current!
     const ctx = canvas.getContext('2d')!
     drawing.current = true
@@ -90,7 +89,7 @@ export default function ConsentPage() {
   function stopDraw() { drawing.current = false }
 
   function clearCanvas() {
-    canvasRef.current?.getContext('2d')?.clearRect(0, 0, 400, 120)
+    canvasRef.current?.getContext('2d')?.clearRect(0, 0, 400, 80)
   }
 
   function startHighlight(e: any) {
@@ -110,7 +109,7 @@ export default function ConsentPage() {
     const ctx = canvas.getContext('2d')!
     const r = canvas.getBoundingClientRect()
     const src = e.touches ? e.touches[0] : e
-    ctx.globalAlpha = 0.02
+    ctx.globalAlpha = 0.08
     ctx.strokeStyle = '#FFE500'
     ctx.lineWidth = 20
     ctx.lineCap = 'round'
@@ -191,7 +190,7 @@ export default function ConsentPage() {
   }
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '30px 16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#EBF5FF', minHeight: '100vh' }}>
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#EBF5FF', minHeight: '100vh' }}>
 
       {/* 펜 토글 버튼 */}
       {!capturing && (
@@ -232,45 +231,45 @@ export default function ConsentPage() {
         )}
 
         {/* 헤더 */}
-        <div style={{ background: '#1E90FF', padding: '28px 36px', marginTop: current.logo_url ? 16 : 0 }}>
-          <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{current.title}</div>
+        <div style={{ background: '#1E90FF', padding: '20px 24px', marginTop: current.logo_url ? 16 : 0 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', textAlign: 'center', wordBreak: 'keep-all' }}>{current.title}</div>
         </div>
 
-        <div style={{ padding: '32px 36px' }}>
+        <div style={{ padding: '20px 16px' }}>
 
           {/* 상단 정보 1행 */}
-          <div style={{ display: 'flex', gap: 20, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>학생명</label>
               {capturing
                 ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{studentName}</div>
-                : <input value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="이름을 입력하세요" style={fieldStyle} />}
+                : <input value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="이름 입력" style={fieldStyle} />}
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>학생 아이디</label>
               {capturing
                 ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{studentId}</div>
-                : <input value={studentId} onChange={e => setStudentId(e.target.value)} placeholder="아이디를 입력하세요" style={fieldStyle} />}
+                : <input value={studentId} onChange={e => setStudentId(e.target.value)} placeholder="아이디 입력" style={fieldStyle} />}
             </div>
           </div>
 
           {/* 상단 정보 2행 */}
-          <div style={{ display: 'flex', gap: 20, marginBottom: 32 }}>
+          <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>상품</label>
               {capturing
                 ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{product}</div>
-                : <input value={product} onChange={e => setProduct(e.target.value)} placeholder="상품명을 입력하세요" style={fieldStyle} />}
+                : <input value={product} onChange={e => setProduct(e.target.value)} placeholder="상품명 입력" style={fieldStyle} />}
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>약정 기간</label>
               {capturing
                 ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{contractPeriod}</div>
-                : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 24개월" style={fieldStyle} />}
+                : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 12개월" style={fieldStyle} />}
             </div>
           </div>
 
-          {/* 안내사항 - 형광펜 오버레이 */}
+          {/* 안내사항 */}
           <div ref={noticeRef} style={{ position: 'relative' }}>
             {!capturing && (
               <canvas ref={highlightRef}
@@ -279,35 +278,34 @@ export default function ConsentPage() {
                 onTouchStart={startHighlight} onTouchMove={doHighlight} onTouchEnd={stopHighlight}
               />
             )}
-
             <div style={{ borderBottom: '2px solid #1E90FF', marginBottom: 4 }}></div>
             {current.items.map((item, i) => (
-              <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 0', borderBottom: '1px solid #f0f0f0', alignItems: 'flex-start' }}>
-                <span style={{ minWidth: 24, height: 24, borderRadius: '50%', background: '#1E90FF', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-block', textAlign: 'center', lineHeight: '24px', flexShrink: 0, marginTop: 2 }}>{i + 1}</span>
-                <span style={{ flex: '0 0 130px', fontSize: 14, fontWeight: 700, color: '#1E90FF' }}>{item.label}</span>
-                <span style={{ flex: 1, fontSize: 14, color: '#444', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{item.content}</span>
+              <div key={i} style={{ display: 'flex', gap: 8, padding: '10px 0', borderBottom: '1px solid #f0f0f0', alignItems: 'flex-start' }}>
+                <span style={{ minWidth: 22, height: 22, borderRadius: '50%', background: '#1E90FF', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-block', textAlign: 'center', lineHeight: '22px', flexShrink: 0, marginTop: 2 }}>{i + 1}</span>
+                <span style={{ flex: '0 0 80px', fontSize: 13, fontWeight: 700, color: '#1E90FF', wordBreak: 'keep-all' }}>{item.label}</span>
+                <span style={{ flex: 1, fontSize: 13, color: '#444', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'keep-all' }}>{item.content}</span>
               </div>
             ))}
           </div>
 
-          <hr style={{ border: 'none', borderTop: '1.5px solid #eee', margin: '28px 0' }} />
+          <hr style={{ border: 'none', borderTop: '1.5px solid #eee', margin: '20px 0' }} />
 
           {/* 확인 체크박스 */}
-          <div style={{ background: '#EBF5FF', border: '1.5px solid #90CAF9', borderRadius: 10, padding: '16px 20px', marginBottom: 28 }}>
+          <div style={{ background: '#EBF5FF', border: '1.5px solid #90CAF9', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
-              <input type="checkbox" checked={checked} onChange={e => setChecked(e.target.checked)} style={{ marginTop: 2, width: 18, height: 18 }} />
-              <span style={{ fontSize: 14, color: '#333', fontWeight: 500 }}>{current.confirm_text}</span>
+              <input type="checkbox" checked={checked} onChange={e => setChecked(e.target.checked)} style={{ marginTop: 2, width: 18, height: 18, flexShrink: 0 }} />
+              <span style={{ fontSize: 13, color: '#333', fontWeight: 500, wordBreak: 'keep-all' }}>{current.confirm_text}</span>
             </label>
           </div>
 
           {/* 서명 */}
-          <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', marginBottom: 20 }}>
-            <div style={{ flex: '0 0 180px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', marginBottom: 20 }}>
+            <div style={{ flex: '0 0 140px' }}>
+              <div style={{ marginBottom: 12 }}>
                 <label style={labelStyle}>계약일자</label>
                 {capturing
                   ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{contractDate}</div>
-                  : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={fieldStyle} />}
+                  : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={{ ...fieldStyle, fontSize: 13 }} />}
               </div>
               <div>
                 <label style={labelStyle}>고객 성명</label>
@@ -318,8 +316,8 @@ export default function ConsentPage() {
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>서명</label>
-              <div style={{ border: '2px solid #ddd', borderRadius: 8, overflow: 'hidden', position: 'relative', background: '#fafafa', height: 120 }}>
-                <canvas ref={canvasRef} width={400} height={120}
+              <div style={{ border: '2px solid #ddd', borderRadius: 8, overflow: 'hidden', position: 'relative', background: '#fafafa', height: 100 }}>
+                <canvas ref={canvasRef} width={400} height={100}
                   onMouseDown={(e) => { setPenMode('sign'); startDraw(e) }}
                   onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
                   onTouchStart={(e) => { setPenMode('sign'); startDraw(e) }}
