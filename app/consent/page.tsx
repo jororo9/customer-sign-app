@@ -121,7 +121,7 @@ export default function ConsentPage() {
     const ctx = canvas.getContext('2d')!
     const r = canvas.getBoundingClientRect()
     const src = e.touches ? e.touches[0] : e
-    ctx.globalAlpha = 0.08
+    ctx.globalAlpha = 0.02
     ctx.strokeStyle = '#FFE500'
     ctx.lineWidth = 20
     ctx.lineCap = 'round'
