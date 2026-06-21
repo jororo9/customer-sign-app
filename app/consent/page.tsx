@@ -240,20 +240,7 @@ export default function ConsentPage() {
         </div>
       )}
 
-      {/* 펜 토글 */}
-      {!capturing && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12, gap: 8 }}>
-          <button onClick={() => setPenMode('highlighter')} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: penMode === 'highlighter' ? '#FFE500' : '#fff', borderColor: penMode === 'highlighter' ? '#FFD000' : '#ddd', color: '#333' }}>
-            🖊 형광펜
-          </button>
-          <button onClick={() => setPenMode('sign')} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: penMode === 'sign' ? '#1E90FF' : '#fff', borderColor: penMode === 'sign' ? '#1E90FF' : '#ddd', color: penMode === 'sign' ? '#fff' : '#333' }}>
-            ✒️ 서명펜
-          </button>
-          {penMode === 'highlighter' && (
-            <button onClick={clearHighlight} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#fff', color: '#888' }}>지우기</button>
-          )}
-        </div>
-      )}
+      
 
       <div ref={formRef} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 8px 32px rgba(30,144,255,0.10)', overflow: 'hidden' }}>
 
