@@ -90,7 +90,7 @@ export default function ConsentPage() {
   function stopDraw() { drawing.current = false }
 
   function clearCanvas() {
-    canvasRef.current?.getContext('2d')?.clearRect(0, 0, 200, 80)
+    canvasRef.current?.getContext('2d')?.clearRect(0, 0, 400, 120)
   }
 
   function startHighlight(e: any) {
@@ -301,28 +301,30 @@ export default function ConsentPage() {
           </div>
 
           {/* 서명 */}
-          <div style={{ display: 'flex', gap: 24, alignItems: 'flex-end', marginBottom: 20 }}>
-            <div style={{ flex: '0 0 180px' }}>
-              <label style={labelStyle}>계약일자</label>
-              {capturing
-                ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{contractDate}</div>
-                : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={fieldStyle} />}
-            </div>
-            <div style={{ flex: '0 0 160px' }}>
-              <label style={labelStyle}>고객 성명</label>
-              {capturing
-                ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{customerName}</div>
-                : <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="성명" style={fieldStyle} />}
+          <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', marginBottom: 20 }}>
+            <div style={{ flex: '0 0 180px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={labelStyle}>계약일자</label>
+                {capturing
+                  ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{contractDate}</div>
+                  : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={fieldStyle} />}
+              </div>
+              <div>
+                <label style={labelStyle}>고객 성명</label>
+                {capturing
+                  ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{customerName}</div>
+                  : <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="성명" style={fieldStyle} />}
+              </div>
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>서명</label>
-              <div style={{ border: '2px solid #ddd', borderRadius: 8, overflow: 'hidden', position: 'relative', background: '#fafafa' }}>
-                <canvas ref={canvasRef} width={200} height={80}
+              <div style={{ border: '2px solid #ddd', borderRadius: 8, overflow: 'hidden', position: 'relative', background: '#fafafa', height: 120 }}>
+                <canvas ref={canvasRef} width={400} height={120}
                   onMouseDown={(e) => { setPenMode('sign'); startDraw(e) }}
                   onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
                   onTouchStart={(e) => { setPenMode('sign'); startDraw(e) }}
                   onTouchMove={draw} onTouchEnd={stopDraw}
-                  style={{ display: 'block', cursor: 'crosshair' }} />
+                  style={{ display: 'block', cursor: 'crosshair', width: '100%', height: '100%' }} />
                 {!capturing && (
                   <button onClick={clearCanvas} style={{ position: 'absolute', top: 6, right: 8, background: 'none', border: 'none', fontSize: 11, color: '#aaa', cursor: 'pointer' }}>지우기</button>
                 )}
