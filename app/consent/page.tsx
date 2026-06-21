@@ -169,7 +169,7 @@ export default function ConsentPage() {
     if (!formRef.current) return null
     setCapturing(true)
     await document.fonts.ready
-    await new Promise(r => setTimeout(r, 300))
+    await new Promise(r => setTimeout(r, 1000))
     const canvas = await html2canvas(formRef.current, {
       scale: 2, backgroundColor: '#fff', useCORS: true, logging: false, allowTaint: true,
     })
