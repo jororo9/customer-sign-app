@@ -37,7 +37,6 @@ export default function ConsentPage() {
   const [penMode, setPenMode] = useState<'highlighter' | 'sign'>('sign')
   const [signModal, setSignModal] = useState(false)
   const [signImage, setSignImage] = useState<string | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
   const highlightRef = useRef<HTMLCanvasElement>(null)
   const noticeRef = useRef<HTMLDivElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
@@ -211,23 +210,11 @@ export default function ConsentPage() {
     border: 'none', background: 'transparent', outline: 'none', width: '100%',
     fontSize: 14, fontFamily: 'var(--font-noto-sans-kr), sans-serif', color: '#1a1a2e', padding: '2px 0'
   }
-  const labelStyle: React.CSSProperties = {
-    display: 'block', fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 6
-  }
-  const fieldStyle: React.CSSProperties = {
-    border: 'none', borderBottom: '2px solid #ddd', padding: '8px 2px',
-    fontSize: 15, outline: 'none', width: '100%',
-    fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: 'transparent'
-  }
-
-  // 테이블 셀 스타일
   const thStyle: React.CSSProperties = {
     flex: '0 0 80px', background: '#f5f7fa', padding: '11px 12px',
     borderRight: '1px solid #e8ecf0', display: 'flex', alignItems: 'center'
   }
-  const tdStyle: React.CSSProperties = {
-    flex: 1, padding: '9px 12px'
-  }
+  const tdStyle: React.CSSProperties = { flex: 1, padding: '9px 12px' }
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#EBF5FF', minHeight: '100vh' }}>
@@ -253,30 +240,18 @@ export default function ConsentPage() {
         </div>
       )}
 
-      {/* 상단 툴바 */}
+      {/* 펜 토글 */}
       {!capturing && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          {/* 웹/모바일 전환 */}
-          <div style={{ display: 'flex', background: '#fff', borderRadius: 8, border: '1.5px solid #ddd', overflow: 'hidden' }}>
-            <button onClick={() => setIsMobile(false)} style={{ padding: '7px 14px', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: !isMobile ? '#1E90FF' : '#fff', color: !isMobile ? '#fff' : '#888' }}>
-              🖥 웹
-            </button>
-            <button onClick={() => setIsMobile(true)} style={{ padding: '7px 14px', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: isMobile ? '#1E90FF' : '#fff', color: isMobile ? '#fff' : '#888' }}>
-              📱 모바일
-            </button>
-          </div>
-          {/* 펜 모드 */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => setPenMode('highlighter')} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: penMode === 'highlighter' ? '#FFE500' : '#fff', borderColor: penMode === 'highlighter' ? '#FFD000' : '#ddd', color: '#333' }}>
-              🖊 형광펜
-            </button>
-            <button onClick={() => setPenMode('sign')} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: penMode === 'sign' ? '#1E90FF' : '#fff', borderColor: penMode === 'sign' ? '#1E90FF' : '#ddd', color: penMode === 'sign' ? '#fff' : '#333' }}>
-              ✒️ 서명펜
-            </button>
-            {penMode === 'highlighter' && (
-              <button onClick={clearHighlight} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#fff', color: '#888' }}>지우기</button>
-            )}
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12, gap: 8 }}>
+          <button onClick={() => setPenMode('highlighter')} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: penMode === 'highlighter' ? '#FFE500' : '#fff', borderColor: penMode === 'highlighter' ? '#FFD000' : '#ddd', color: '#333' }}>
+            🖊 형광펜
+          </button>
+          <button onClick={() => setPenMode('sign')} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: penMode === 'sign' ? '#1E90FF' : '#fff', borderColor: penMode === 'sign' ? '#1E90FF' : '#ddd', color: penMode === 'sign' ? '#fff' : '#333' }}>
+            ✒️ 서명펜
+          </button>
+          {penMode === 'highlighter' && (
+            <button onClick={clearHighlight} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#fff', color: '#888' }}>지우기</button>
+          )}
         </div>
       )}
 
@@ -317,192 +292,98 @@ export default function ConsentPage() {
 
         <div style={{ padding: '20px 16px' }}>
 
-          {/* ===== 웹/태블릿 레이아웃 ===== */}
-          {!isMobile ? (
-            <>
-              {/* 고객 정보 테이블 */}
-              <div style={{ border: '1.5px solid #e8ecf0', borderRadius: 10, overflow: 'hidden', marginBottom: 24 }}>
-                <div style={{ display: 'flex', borderBottom: '1px solid #e8ecf0' }}>
-                  <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>학생명</span></div>
-                  <div style={tdStyle}>
-                    {capturing ? <div style={{ fontSize: 14 }}>{studentName}</div>
-                      : <input value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="이름 입력" style={inputStyle} />}
-                  </div>
-                  <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>아이디</span></div>
-                  <div style={tdStyle}>
-                    {capturing ? <div style={{ fontSize: 14 }}>{studentId}</div>
-                      : <input value={studentId} onChange={e => setStudentId(e.target.value)} placeholder="아이디 입력" style={inputStyle} />}
-                  </div>
-                </div>
-                <div style={{ display: 'flex' }}>
-                  <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>상품</span></div>
-                  <div style={tdStyle}>
-                    {capturing ? <div style={{ fontSize: 14, fontWeight: 600 }}>{product}</div>
-                      : <input value={product} onChange={e => setProduct(e.target.value)} placeholder="상품명 입력" style={{ ...inputStyle, fontWeight: 600 }} />}
-                  </div>
-                  <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>약정기간</span></div>
-                  <div style={tdStyle}>
-                    {capturing ? <div style={{ fontSize: 15, color: '#1E90FF', fontWeight: 700 }}>{contractPeriod}</div>
-                      : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 24개월" style={{ ...inputStyle, fontSize: 15, color: '#1E90FF', fontWeight: 700 }} />}
-                  </div>
-                </div>
+          {/* 고객 정보 테이블 */}
+          <div style={{ border: '1.5px solid #e8ecf0', borderRadius: 10, overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid #e8ecf0' }}>
+              <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>학생명</span></div>
+              <div style={tdStyle}>
+                {capturing ? <div style={{ fontSize: 14 }}>{studentName}</div>
+                  : <input value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="이름 입력" style={inputStyle} />}
               </div>
-
-              {/* 안내사항 */}
-              <div ref={noticeRef} style={{ position: 'relative' }}>
-                {!capturing && (
-                  <canvas ref={highlightRef}
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, cursor: penMode === 'highlighter' ? 'crosshair' : 'default', pointerEvents: penMode === 'highlighter' ? 'auto' : 'none' }}
-                    onMouseDown={startHighlight} onMouseMove={doHighlight} onMouseUp={stopHighlight} onMouseLeave={stopHighlight}
-                    onTouchStart={startHighlight} onTouchMove={doHighlight} onTouchEnd={stopHighlight}
-                  />
-                )}
-                <div style={{ borderBottom: '2.5px solid #1E90FF', marginBottom: 4 }}></div>
-                {current.items.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 4px', borderBottom: '1px solid #f0f0f0', alignItems: 'flex-start' }}>
-                    <span style={{ minWidth: 22, height: 22, borderRadius: '50%', background: '#1E90FF', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-block', textAlign: 'center', lineHeight: '22px', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
-                    <span style={{ flex: '0 0 100px', fontSize: 13, fontWeight: 700, color: '#1E90FF', wordBreak: 'keep-all' }}>{item.label}</span>
-                    <span style={{ flex: 1, fontSize: 13, color: '#444', lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'keep-all' }}>{item.content}</span>
-                  </div>
-                ))}
+              <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>아이디</span></div>
+              <div style={tdStyle}>
+                {capturing ? <div style={{ fontSize: 14 }}>{studentId}</div>
+                  : <input value={studentId} onChange={e => setStudentId(e.target.value)} placeholder="아이디 입력" style={inputStyle} />}
               </div>
-
-              <hr style={{ border: 'none', borderTop: '1.5px solid #eee', margin: '20px 0' }} />
-
-              {/* 확인 체크박스 */}
-              <div style={{ background: 'linear-gradient(135deg, #f0f8ff, #e8f4ff)', border: '1.5px solid #b3d9ff', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={checked} onChange={e => setChecked(e.target.checked)} style={{ marginTop: 2, width: 18, height: 18, flexShrink: 0, accentColor: '#1E90FF' }} />
-                  <span style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 500, wordBreak: 'keep-all', lineHeight: 1.6 }}>{current.confirm_text}</span>
-                </label>
+            </div>
+            <div style={{ display: 'flex' }}>
+              <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>상품</span></div>
+              <div style={tdStyle}>
+                {capturing ? <div style={{ fontSize: 14, fontWeight: 600 }}>{product}</div>
+                  : <input value={product} onChange={e => setProduct(e.target.value)} placeholder="상품명 입력" style={{ ...inputStyle, fontWeight: 600 }} />}
               </div>
+              <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>약정기간</span></div>
+              <div style={tdStyle}>
+                {capturing ? <div style={{ fontSize: 15, color: '#1E90FF', fontWeight: 700 }}>{contractPeriod}</div>
+                  : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 24개월" style={{ ...inputStyle, fontSize: 15, color: '#1E90FF', fontWeight: 700 }} />}
+              </div>
+            </div>
+          </div>
 
-              {/* 서명 테이블 */}
-              <div style={{ border: '1.5px solid #e8ecf0', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
-                <div style={{ display: 'flex', borderBottom: '1px solid #e8ecf0' }}>
-                  <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>계약일자</span></div>
-                  <div style={tdStyle}>
-                    {capturing ? <div style={{ fontSize: 13 }}>{contractDate}</div>
-                      : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={{ ...inputStyle, fontSize: 13 }} />}
-                  </div>
-                  <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>고객 성명</span></div>
-                  <div style={tdStyle}>
-                    {capturing ? <div style={{ fontSize: 14, fontWeight: 600 }}>{customerName}</div>
-                      : <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="성명" style={{ ...inputStyle, fontWeight: 600 }} />}
-                  </div>
-                </div>
-                <div style={{ display: 'flex' }}>
-                  <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>서명</span></div>
-                  <div style={{ flex: 1, padding: '10px 12px' }}>
-                    {signImage ? (
-                      <div style={{ position: 'relative', border: '1.5px solid #1E90FF', borderRadius: 8, overflow: 'hidden', background: '#fafafa', minHeight: 80 }}>
-                        <img src={signImage} alt="서명" style={{ width: '100%', objectFit: 'contain', display: 'block' }} />
-                        {!capturing && (
-                          <button onClick={() => { setSignImage(null); setSignModal(true) }} style={{ position: 'absolute', top: 6, right: 8, background: 'rgba(255,255,255,0.9)', border: '1px solid #ddd', borderRadius: 6, fontSize: 11, color: '#888', cursor: 'pointer', padding: '2px 8px' }}>다시 서명</button>
-                        )}
-                      </div>
-                    ) : (
-                      <div onClick={() => setSignModal(true)} style={{ border: '2px dashed #1E90FF', borderRadius: 8, background: '#f0f8ff', minHeight: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 6 }}>
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E90FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                        </svg>
-                        <span style={{ fontSize: 13, color: '#1E90FF', fontWeight: 700 }}>탭하여 서명</span>
-                      </div>
+          {/* 안내사항 */}
+          <div ref={noticeRef} style={{ position: 'relative' }}>
+            {!capturing && (
+              <canvas ref={highlightRef}
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, cursor: penMode === 'highlighter' ? 'crosshair' : 'default', pointerEvents: penMode === 'highlighter' ? 'auto' : 'none' }}
+                onMouseDown={startHighlight} onMouseMove={doHighlight} onMouseUp={stopHighlight} onMouseLeave={stopHighlight}
+                onTouchStart={startHighlight} onTouchMove={doHighlight} onTouchEnd={stopHighlight}
+              />
+            )}
+            <div style={{ borderBottom: '2.5px solid #1E90FF', marginBottom: 4 }}></div>
+            {current.items.map((item, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 4px', borderBottom: '1px solid #f0f0f0', alignItems: 'flex-start' }}>
+                <span style={{ minWidth: 22, height: 22, borderRadius: '50%', background: '#1E90FF', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-block', textAlign: 'center', lineHeight: '22px', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
+                <span style={{ flex: '0 0 90px', fontSize: 13, fontWeight: 700, color: '#1E90FF', wordBreak: 'keep-all' }}>{item.label}</span>
+                <span style={{ flex: 1, fontSize: 13, color: '#444', lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'keep-all' }}>{item.content}</span>
+              </div>
+            ))}
+          </div>
+
+          <hr style={{ border: 'none', borderTop: '1.5px solid #eee', margin: '20px 0' }} />
+
+          {/* 확인 체크박스 */}
+          <div style={{ background: 'linear-gradient(135deg, #f0f8ff, #e8f4ff)', border: '1.5px solid #b3d9ff', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+              <input type="checkbox" checked={checked} onChange={e => setChecked(e.target.checked)} style={{ marginTop: 2, width: 18, height: 18, flexShrink: 0, accentColor: '#1E90FF' }} />
+              <span style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 500, wordBreak: 'keep-all', lineHeight: 1.6 }}>{current.confirm_text}</span>
+            </label>
+          </div>
+
+          {/* 서명 테이블 */}
+          <div style={{ border: '1.5px solid #e8ecf0', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid #e8ecf0' }}>
+              <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>계약일자</span></div>
+              <div style={tdStyle}>
+                {capturing ? <div style={{ fontSize: 13 }}>{contractDate}</div>
+                  : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={{ ...inputStyle, fontSize: 13 }} />}
+              </div>
+              <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>고객 성명</span></div>
+              <div style={tdStyle}>
+                {capturing ? <div style={{ fontSize: 14, fontWeight: 600 }}>{customerName}</div>
+                  : <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="성명" style={{ ...inputStyle, fontWeight: 600 }} />}
+              </div>
+            </div>
+            <div style={{ display: 'flex' }}>
+              <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>서명</span></div>
+              <div style={{ flex: 1, padding: '10px 12px' }}>
+                {signImage ? (
+                  <div style={{ position: 'relative', border: '1.5px solid #1E90FF', borderRadius: 8, overflow: 'hidden', background: '#fafafa', minHeight: 80 }}>
+                    <img src={signImage} alt="서명" style={{ width: '100%', objectFit: 'contain', display: 'block' }} />
+                    {!capturing && (
+                      <button onClick={() => { setSignImage(null); setSignModal(true) }} style={{ position: 'absolute', top: 6, right: 8, background: 'rgba(255,255,255,0.9)', border: '1px solid #ddd', borderRadius: 6, fontSize: 11, color: '#888', cursor: 'pointer', padding: '2px 8px' }}>다시 서명</button>
                     )}
                   </div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* ===== 모바일 레이아웃 ===== */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-                <div>
-                  <label style={labelStyle}>학생명</label>
-                  {capturing ? <div style={{ fontSize: 15, fontWeight: 500, paddingBottom: 6, borderBottom: '2px solid #ddd' }}>{studentName}</div>
-                    : <input value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="이름 입력" style={{ ...fieldStyle }} />}
-                </div>
-                <div>
-                  <label style={labelStyle}>학생 아이디</label>
-                  {capturing ? <div style={{ fontSize: 15, paddingBottom: 6, borderBottom: '2px solid #ddd' }}>{studentId}</div>
-                    : <input value={studentId} onChange={e => setStudentId(e.target.value)} placeholder="아이디 입력" style={fieldStyle} />}
-                </div>
-                <div>
-                  <label style={labelStyle}>상품</label>
-                  {capturing ? <div style={{ fontSize: 15, fontWeight: 600, paddingBottom: 6, borderBottom: '2px solid #ddd' }}>{product}</div>
-                    : <input value={product} onChange={e => setProduct(e.target.value)} placeholder="상품명 입력" style={{ ...fieldStyle, fontWeight: 600 }} />}
-                </div>
-                <div>
-                  <label style={labelStyle}>약정 기간</label>
-                  {capturing ? <div style={{ fontSize: 16, color: '#1E90FF', fontWeight: 700, paddingBottom: 6, borderBottom: '2px solid #1E90FF' }}>{contractPeriod}</div>
-                    : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 12개월" style={{ ...fieldStyle, color: '#1E90FF', fontWeight: 700 }} />}
-                </div>
-              </div>
-
-              {/* 안내사항 (모바일) */}
-              <div ref={noticeRef} style={{ position: 'relative' }}>
-                {!capturing && (
-                  <canvas ref={highlightRef}
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, cursor: penMode === 'highlighter' ? 'crosshair' : 'default', pointerEvents: penMode === 'highlighter' ? 'auto' : 'none' }}
-                    onMouseDown={startHighlight} onMouseMove={doHighlight} onMouseUp={stopHighlight} onMouseLeave={stopHighlight}
-                    onTouchStart={startHighlight} onTouchMove={doHighlight} onTouchEnd={stopHighlight}
-                  />
+                ) : (
+                  <div onClick={() => setSignModal(true)} style={{ border: '2px dashed #1E90FF', borderRadius: 8, background: '#f0f8ff', minHeight: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 6 }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E90FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                    <span style={{ fontSize: 13, color: '#1E90FF', fontWeight: 700 }}>탭하여 서명</span>
+                  </div>
                 )}
-                <div style={{ borderBottom: '2.5px solid #1E90FF', marginBottom: 4 }}></div>
-                {current.items.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 8, padding: '11px 4px', borderBottom: '1px solid #f0f0f0', alignItems: 'flex-start' }}>
-                    <span style={{ minWidth: 22, height: 22, borderRadius: '50%', background: '#1E90FF', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-block', textAlign: 'center', lineHeight: '22px', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
-                    <span style={{ flex: '0 0 75px', fontSize: 13, fontWeight: 700, color: '#1E90FF', wordBreak: 'keep-all' }}>{item.label}</span>
-                    <span style={{ flex: 1, fontSize: 13, color: '#444', lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'keep-all' }}>{item.content}</span>
-                  </div>
-                ))}
               </div>
-
-              <hr style={{ border: 'none', borderTop: '1.5px solid #eee', margin: '20px 0' }} />
-
-              {/* 확인 체크박스 (모바일) */}
-              <div style={{ background: 'linear-gradient(135deg, #f0f8ff, #e8f4ff)', border: '1.5px solid #b3d9ff', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={checked} onChange={e => setChecked(e.target.checked)} style={{ marginTop: 2, width: 18, height: 18, flexShrink: 0, accentColor: '#1E90FF' }} />
-                  <span style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 500, wordBreak: 'keep-all', lineHeight: 1.6 }}>{current.confirm_text}</span>
-                </label>
-              </div>
-
-              {/* 서명 (모바일) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={labelStyle}>계약일자</label>
-                    {capturing ? <div style={{ fontSize: 13, paddingBottom: 6, borderBottom: '2px solid #ddd' }}>{contractDate}</div>
-                      : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={{ ...fieldStyle, fontSize: 13 }} />}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={labelStyle}>고객 성명</label>
-                    {capturing ? <div style={{ fontSize: 15, fontWeight: 600, paddingBottom: 6, borderBottom: '2px solid #ddd' }}>{customerName}</div>
-                      : <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="성명" style={{ ...fieldStyle, fontWeight: 600 }} />}
-                  </div>
-                </div>
-                <div>
-                  <label style={labelStyle}>서명</label>
-                  {signImage ? (
-                    <div style={{ position: 'relative', border: '1.5px solid #1E90FF', borderRadius: 8, overflow: 'hidden', background: '#fafafa', minHeight: 90 }}>
-                      <img src={signImage} alt="서명" style={{ width: '100%', objectFit: 'contain', display: 'block' }} />
-                      {!capturing && (
-                        <button onClick={() => { setSignImage(null); setSignModal(true) }} style={{ position: 'absolute', top: 6, right: 8, background: 'rgba(255,255,255,0.9)', border: '1px solid #ddd', borderRadius: 6, fontSize: 11, color: '#888', cursor: 'pointer', padding: '2px 8px' }}>다시 서명</button>
-                      )}
-                    </div>
-                  ) : (
-                    <div onClick={() => setSignModal(true)} style={{ border: '2px dashed #1E90FF', borderRadius: 8, background: '#f0f8ff', minHeight: 90, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 6 }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E90FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                      </svg>
-                      <span style={{ fontSize: 13, color: '#1E90FF', fontWeight: 700 }}>탭하여 서명</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
+            </div>
+          </div>
 
           {/* 저장 버튼 */}
           {!capturing && (
