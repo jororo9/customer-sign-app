@@ -299,14 +299,14 @@ export default function ConsentPage() {
           </div>
 
          {/* 서명 */}
-          <div style={{ display: 'flex', gap: 24, alignItems: 'flex-end', marginBottom: 20 }}>
-            <div style={{ flex: '0 0 180px' }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 20 }}>
+            <div style={{ flex: '0 0 130px' }}>
               <label style={labelStyle}>계약일자</label>
               {capturing
                 ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{contractDate}</div>
                 : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={fieldStyle} />}
             </div>
-            <div style={{ flex: '0 0 160px' }}>
+            <div style={{ flex: '0 0 100px' }}>
               <label style={labelStyle}>고객 성명</label>
               {capturing
                 ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{customerName}</div>
