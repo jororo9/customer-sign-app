@@ -35,6 +35,9 @@ export default function ConsentPage() {
   const [checked, setChecked] = useState(false)
   const [capturing, setCapturing] = useState(false)
   const [penMode, setPenMode] = useState<'highlighter' | 'sign'>('sign')
+  const [signModal, setSignModal] = useState(false)
+  const modalCanvasRef = useRef<HTMLCanvasElement>(null)
+  const modalDrawing = useRef(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const highlightRef = useRef<HTMLCanvasElement>(null)
   const noticeRef = useRef<HTMLDivElement>(null)
@@ -90,6 +93,43 @@ export default function ConsentPage() {
 
   function clearCanvas() {
     canvasRef.current?.getContext('2d')?.clearRect(0, 0, 200, 80)
+  }
+
+  function startModalDraw(e: any) {
+    const canvas = modalCanvasRef.current!
+    const ctx = canvas.getContext('2d')!
+    modalDrawing.current = true
+    const r = canvas.getBoundingClientRect()
+    const src = e.touches ? e.touches[0] : e
+    ctx.beginPath(); ctx.moveTo(src.clientX - r.left, src.clientY - r.top)
+  }
+
+  function doModalDraw(e: any) {
+    e.preventDefault()
+    if (!modalDrawing.current) return
+    const canvas = modalCanvasRef.current!
+    const ctx = canvas.getContext('2d')!
+    const r = canvas.getBoundingClientRect()
+    const src = e.touches ? e.touches[0] : e
+    ctx.strokeStyle = '#000000'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'
+    ctx.lineTo(src.clientX - r.left, src.clientY - r.top)
+    ctx.stroke()
+  }
+
+  function stopModalDraw() { modalDrawing.current = false }
+
+  function clearModalCanvas() {
+    const canvas = modalCanvasRef.current!
+    canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
+  }
+
+  function confirmSign() {
+    const modalCanvas = modalCanvasRef.current!
+    const mainCanvas = canvasRef.current!
+    const ctx = mainCanvas.getContext('2d')!
+    ctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height)
+    ctx.drawImage(modalCanvas, 0, 0, mainCanvas.width, mainCanvas.height)
+    setSignModal(false)
   }
 
   function startHighlight(e: any) {
@@ -314,19 +354,40 @@ export default function ConsentPage() {
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>서명</label>
-              <div style={{ border: '2px solid #ddd', borderRadius: 8, overflow: 'hidden', position: 'relative', background: '#fafafa' }}>
-                <canvas ref={canvasRef} width={200} height={80}
-                  onMouseDown={(e) => { setPenMode('sign'); startDraw(e) }}
-                  onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
-                  onTouchStart={(e) => { setPenMode('sign'); startDraw(e) }}
-                  onTouchMove={draw} onTouchEnd={stopDraw}
-                  style={{ display: 'block', cursor: 'crosshair' }} />
+              <div onClick={() => setSignModal(true)} style={{ border: '2px solid #1E90FF', borderRadius: 8, overflow: 'hidden', position: 'relative', background: '#fafafa', cursor: 'pointer', minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <canvas ref={canvasRef} width={200} height={80} style={{ display: 'block', width: '100%' }} />
                 {!capturing && (
-                  <button onClick={clearCanvas} style={{ position: 'absolute', top: 6, right: 8, background: 'none', border: 'none', fontSize: 11, color: '#aaa', cursor: 'pointer' }}>지우기</button>
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: 12, color: '#1E90FF', pointerEvents: 'none', opacity: 0.6 }}>탭하여 서명</div>
                 )}
               </div>
             </div>
           </div>
+
+          {/* 서명 모달 */}
+          {signModal && (
+            <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+              <div style={{ background: '#fff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 600 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', marginBottom: 12, textAlign: 'center' }}>서명해 주세요</div>
+                <div style={{ border: '2px solid #1E90FF', borderRadius: 12, overflow: 'hidden', background: '#fafafa', marginBottom: 16 }}>
+                  <canvas ref={modalCanvasRef} width={560} height={200}
+                    onMouseDown={startModalDraw} onMouseMove={doModalDraw} onMouseUp={stopModalDraw} onMouseLeave={stopModalDraw}
+                    onTouchStart={startModalDraw} onTouchMove={doModalDraw} onTouchEnd={stopModalDraw}
+                    style={{ display: 'block', cursor: 'crosshair', width: '100%', touchAction: 'none' }} />
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button onClick={clearModalCanvas} style={{ flex: 1, padding: 12, background: '#f0f2f5', border: '1.5px solid #ddd', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', color: '#888' }}>
+                    지우기
+                  </button>
+                  <button onClick={() => setSignModal(false)} style={{ flex: 1, padding: 12, background: '#fff', border: '1.5px solid #ddd', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', color: '#888' }}>
+                    취소
+                  </button>
+                  <button onClick={confirmSign} style={{ flex: 2, padding: 12, background: '#1E90FF', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', color: '#fff' }}>
+                    서명 완료
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 저장 버튼 */}
           {!capturing && (
