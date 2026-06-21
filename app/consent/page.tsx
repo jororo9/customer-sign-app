@@ -34,7 +34,7 @@ export default function ConsentPage() {
   const [contractDate, setContractDate] = useState(new Date().toISOString().split('T')[0])
   const [checked, setChecked] = useState(false)
   const [capturing, setCapturing] = useState(false)
-  const [penMode, setPenMode] = useState<'highlighter' | 'sign'>('highlighter')
+  const [penMode, setPenMode] = useState<'highlighter' | 'sign'>('sign')
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const highlightRef = useRef<HTMLCanvasElement>(null)
   const noticeRef = useRef<HTMLDivElement>(null)
@@ -110,7 +110,7 @@ export default function ConsentPage() {
     const ctx = canvas.getContext('2d')!
     const r = canvas.getBoundingClientRect()
     const src = e.touches ? e.touches[0] : e
-    ctx.globalAlpha = 0.08
+    ctx.globalAlpha = 0.02
     ctx.strokeStyle = '#FFE500'
     ctx.lineWidth = 20
     ctx.lineCap = 'round'
@@ -266,7 +266,7 @@ export default function ConsentPage() {
               <label style={labelStyle}>약정 기간</label>
               {capturing
                 ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{contractPeriod}</div>
-                : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 12개월" style={fieldStyle} />}
+                : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 24개월" style={fieldStyle} />}
             </div>
           </div>
 
