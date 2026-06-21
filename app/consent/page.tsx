@@ -280,11 +280,7 @@ export default function ConsentPage() {
               />
             )}
 
-            <div style={{ borderBottom: '2px solid #1E90FF', display: 'flex', gap: 10, paddingBottom: 6, marginBottom: 4 }}>
-              <span style={{ minWidth: 34 }}></span>
-              <span style={{ flex: '0 0 130px', fontSize: 11, fontWeight: 700, color: '#888' }}>항목</span>
-              <span style={{ flex: 1, fontSize: 11, fontWeight: 700, color: '#888' }}>내용</span>
-            </div>
+            <div style={{ borderBottom: '2px solid #1E90FF', marginBottom: 4 }}></div>
             {current.items.map((item, i) => (
               <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 0', borderBottom: '1px solid #f0f0f0', alignItems: 'flex-start' }}>
                 <span style={{ minWidth: 24, height: 24, borderRadius: '50%', background: '#1E90FF', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-block', textAlign: 'center', lineHeight: '24px', flexShrink: 0, marginTop: 2 }}>{i + 1}</span>
