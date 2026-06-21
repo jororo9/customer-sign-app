@@ -121,7 +121,7 @@ export default function ConsentPage() {
     const ctx = canvas.getContext('2d')!
     const r = canvas.getBoundingClientRect()
     const src = e.touches ? e.touches[0] : e
-    ctx.globalAlpha = 0.08
+    ctx.globalAlpha = 0.01
     ctx.strokeStyle = '#FFE500'
     ctx.lineWidth = 20
     ctx.lineCap = 'round'
@@ -313,7 +313,7 @@ export default function ConsentPage() {
               <div style={{ flex: 1, padding: '10px 14px' }}>
                 {capturing
                   ? <div style={{ fontSize: 15, color: '#1E90FF', fontWeight: 700 }}>{contractPeriod}</div>
-                  : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 12개월" style={{ ...inputStyle, fontSize: 15, color: '#1E90FF', fontWeight: 700 }} />}
+                  : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 24개월" style={{ ...inputStyle, fontSize: 15, color: '#1E90FF', fontWeight: 700 }} />}
               </div>
             </div>
           </div>
