@@ -36,13 +36,12 @@ export default function ConsentPage() {
   const [capturing, setCapturing] = useState(false)
   const [penMode, setPenMode] = useState<'highlighter' | 'sign'>('sign')
   const [signModal, setSignModal] = useState(false)
-  const modalCanvasRef = useRef<HTMLCanvasElement>(null)
-  const modalDrawing = useRef(false)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [signImage, setSignImage] = useState<string | null>(null)
   const highlightRef = useRef<HTMLCanvasElement>(null)
   const noticeRef = useRef<HTMLDivElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
-  const drawing = useRef(false)
+  const modalCanvasRef = useRef<HTMLCanvasElement>(null)
+  const modalDrawing = useRef(false)
 
   useEffect(() => { loadAll() }, [])
 
@@ -66,35 +65,6 @@ export default function ConsentPage() {
     setData(next)
   }
 
-  function getPos(e: any, canvas: HTMLCanvasElement) {
-    const r = canvas.getBoundingClientRect()
-    const src = e.touches ? e.touches[0] : e
-    return { x: src.clientX - r.left, y: src.clientY - r.top }
-  }
-
-  function startDraw(e: any) {
-    const canvas = canvasRef.current!
-    const ctx = canvas.getContext('2d')!
-    drawing.current = true
-    const p = getPos(e, canvas)
-    ctx.beginPath(); ctx.moveTo(p.x, p.y)
-  }
-
-  function draw(e: any) {
-    if (!drawing.current || penMode !== 'sign') return
-    const canvas = canvasRef.current!
-    const ctx = canvas.getContext('2d')!
-    ctx.strokeStyle = '#000000'; ctx.lineWidth = 2; ctx.lineCap = 'round'
-    const p = getPos(e, canvas)
-    ctx.lineTo(p.x, p.y); ctx.stroke()
-  }
-
-  function stopDraw() { drawing.current = false }
-
-  function clearCanvas() {
-    canvasRef.current?.getContext('2d')?.clearRect(0, 0, 200, 80)
-  }
-
   function startModalDraw(e: any) {
     const canvas = modalCanvasRef.current!
     const ctx = canvas.getContext('2d')!
@@ -116,7 +86,7 @@ export default function ConsentPage() {
     const src = e.touches ? e.touches[0] : e
     const scaleX = canvas.width / r.width
     const scaleY = canvas.height / r.height
-    ctx.strokeStyle = '#000000'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'
+    ctx.strokeStyle = '#000000'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
     ctx.lineTo((src.clientX - r.left) * scaleX, (src.clientY - r.top) * scaleY)
     ctx.stroke()
   }
@@ -129,11 +99,8 @@ export default function ConsentPage() {
   }
 
   function confirmSign() {
-    const modalCanvas = modalCanvasRef.current!
-    const mainCanvas = canvasRef.current!
-    const ctx = mainCanvas.getContext('2d')!
-    ctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height)
-    ctx.drawImage(modalCanvas, 0, 0, mainCanvas.width, mainCanvas.height)
+    const canvas = modalCanvasRef.current!
+    setSignImage(canvas.toDataURL('image/png'))
     setSignModal(false)
   }
 
@@ -141,15 +108,15 @@ export default function ConsentPage() {
     if (penMode !== 'highlighter') return
     const canvas = highlightRef.current!
     const ctx = canvas.getContext('2d')!
-    drawing.current = true
     const r = canvas.getBoundingClientRect()
     const src = e.touches ? e.touches[0] : e
+    modalDrawing.current = true
     ctx.beginPath()
     ctx.moveTo(src.clientX - r.left, src.clientY - r.top)
   }
 
   function doHighlight(e: any) {
-    if (!drawing.current || penMode !== 'highlighter') return
+    if (!modalDrawing.current || penMode !== 'highlighter') return
     const canvas = highlightRef.current!
     const ctx = canvas.getContext('2d')!
     const r = canvas.getBoundingClientRect()
@@ -163,7 +130,7 @@ export default function ConsentPage() {
     ctx.stroke()
   }
 
-  function stopHighlight() { drawing.current = false }
+  function stopHighlight() { modalDrawing.current = false }
 
   function clearHighlight() {
     const canvas = highlightRef.current
@@ -237,6 +204,26 @@ export default function ConsentPage() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#EBF5FF', minHeight: '100vh' }}>
 
+      {/* 서명 모달 */}
+      {signModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 500 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', marginBottom: 12, textAlign: 'center' }}>서명해 주세요</div>
+            <div style={{ border: '2px solid #1E90FF', borderRadius: 12, overflow: 'hidden', background: '#fafafa', marginBottom: 16 }}>
+              <canvas ref={modalCanvasRef} width={460} height={220}
+                onMouseDown={startModalDraw} onMouseMove={doModalDraw} onMouseUp={stopModalDraw} onMouseLeave={stopModalDraw}
+                onTouchStart={startModalDraw} onTouchMove={doModalDraw} onTouchEnd={stopModalDraw}
+                style={{ display: 'block', cursor: 'crosshair', width: '100%', touchAction: 'none' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={clearModalCanvas} style={{ flex: 1, padding: 12, background: '#f0f2f5', border: '1.5px solid #ddd', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', color: '#888' }}>지우기</button>
+              <button onClick={() => setSignModal(false)} style={{ flex: 1, padding: 12, background: '#fff', border: '1.5px solid #ddd', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', color: '#888' }}>취소</button>
+              <button onClick={confirmSign} style={{ flex: 2, padding: 12, background: '#1E90FF', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', color: '#fff' }}>✓ 서명 완료</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 펜 토글 버튼 */}
       {!capturing && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12, gap: 8 }}>
@@ -260,7 +247,7 @@ export default function ConsentPage() {
         {!capturing && (
           <div style={{ display: 'flex', borderBottom: '2px solid #f0f0f0' }}>
             {CATEGORIES.map(c => (
-              <button key={c.key} onClick={() => { setTab(c.key); setChecked(false); clearCanvas(); clearHighlight() }}
+              <button key={c.key} onClick={() => { setTab(c.key); setChecked(false); setSignImage(null); clearHighlight() }}
                 style={{ flex: 1, padding: 16, border: 'none', background: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer', color: tab === c.key ? '#1E90FF' : '#aaa', borderBottom: tab === c.key ? '3px solid #1E90FF' : '3px solid transparent', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>
                 {c.label}
               </button>
@@ -270,7 +257,7 @@ export default function ConsentPage() {
 
         {/* 로고 */}
         {current.logo_url && (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 36px 0', background: '#fff' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 16px 0', background: '#fff' }}>
             <img src={current.logo_url} alt="로고" style={{ height: 50, objectFit: 'contain' }} crossOrigin="anonymous" />
           </div>
         )}
@@ -310,7 +297,7 @@ export default function ConsentPage() {
               <label style={labelStyle}>약정 기간</label>
               {capturing
                 ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{contractPeriod}</div>
-                : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 12개월" style={fieldStyle} />}
+                : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 24개월" style={fieldStyle} />}
             </div>
           </div>
 
@@ -343,56 +330,41 @@ export default function ConsentPage() {
             </label>
           </div>
 
-         {/* 서명 */}
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 20 }}>
-            <div style={{ flex: '0 0 130px' }}>
-              <label style={labelStyle}>계약일자</label>
-              {capturing
-                ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{contractDate}</div>
-                : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={fieldStyle} />}
+          {/* 서명 영역 */}
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 20 }}>
+            {/* 계약일자 + 고객성명 두 줄 */}
+            <div style={{ flex: '0 0 140px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={labelStyle}>계약일자</label>
+                {capturing
+                  ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8, fontSize: 13 }}>{contractDate}</div>
+                  : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={{ ...fieldStyle, fontSize: 13 }} />}
+              </div>
+              <div>
+                <label style={labelStyle}>고객 성명</label>
+                {capturing
+                  ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{customerName}</div>
+                  : <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="성명" style={fieldStyle} />}
+              </div>
             </div>
-            <div style={{ flex: '0 0 100px' }}>
-              <label style={labelStyle}>고객 성명</label>
-              {capturing
-                ? <div style={{ ...fieldStyle, paddingTop: 8, paddingBottom: 8 }}>{customerName}</div>
-                : <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="성명" style={fieldStyle} />}
-            </div>
+
+            {/* 서명 칸 */}
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>서명</label>
-              <div onClick={() => setSignModal(true)} style={{ border: '2px solid #1E90FF', borderRadius: 8, overflow: 'hidden', position: 'relative', background: '#fafafa', cursor: 'pointer', minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <canvas ref={canvasRef} width={200} height={80} style={{ display: 'block', width: '100%' }} />
-                {!capturing && (
-                  <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: 12, color: '#1E90FF', pointerEvents: 'none', opacity: 0.6 }}>탭하여 서명</div>
-                )}
-              </div>
+              {signImage ? (
+                <div style={{ position: 'relative', border: '2px solid #1E90FF', borderRadius: 8, overflow: 'hidden', background: '#fafafa', minHeight: 100 }}>
+                  <img src={signImage} alt="서명" style={{ width: '100%', objectFit: 'contain', display: 'block' }} />
+                  {!capturing && (
+                    <button onClick={() => { setSignImage(null); setSignModal(true) }} style={{ position: 'absolute', top: 6, right: 8, background: 'none', border: 'none', fontSize: 11, color: '#aaa', cursor: 'pointer' }}>다시 서명</button>
+                  )}
+                </div>
+              ) : (
+                <div onClick={() => setSignModal(true)} style={{ border: '2px dashed #1E90FF', borderRadius: 8, background: '#f0f8ff', minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <span style={{ fontSize: 13, color: '#1E90FF', fontWeight: 700 }}>✏️ 탭하여 서명</span>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* 서명 모달 */}
-          {signModal && (
-            <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-              <div style={{ background: '#fff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 600 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', marginBottom: 12, textAlign: 'center' }}>서명해 주세요</div>
-                <div style={{ border: '2px solid #1E90FF', borderRadius: 12, overflow: 'hidden', background: '#fafafa', marginBottom: 16 }}>
-                  <canvas ref={modalCanvasRef} width={560} height={200}
-                    onMouseDown={startModalDraw} onMouseMove={doModalDraw} onMouseUp={stopModalDraw} onMouseLeave={stopModalDraw}
-                    onTouchStart={startModalDraw} onTouchMove={doModalDraw} onTouchEnd={stopModalDraw}
-                    style={{ display: 'block', cursor: 'crosshair', width: '100%', touchAction: 'none' }} />
-                </div>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <button onClick={clearModalCanvas} style={{ flex: 1, padding: 12, background: '#f0f2f5', border: '1.5px solid #ddd', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', color: '#888' }}>
-                    지우기
-                  </button>
-                  <button onClick={() => setSignModal(false)} style={{ flex: 1, padding: 12, background: '#fff', border: '1.5px solid #ddd', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', color: '#888' }}>
-                    취소
-                  </button>
-                  <button onClick={confirmSign} style={{ flex: 2, padding: 12, background: '#1E90FF', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', color: '#fff' }}>
-                    서명 완료
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* 저장 버튼 */}
           {!capturing && (
