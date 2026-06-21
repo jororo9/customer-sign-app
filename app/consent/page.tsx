@@ -101,7 +101,10 @@ export default function ConsentPage() {
     modalDrawing.current = true
     const r = canvas.getBoundingClientRect()
     const src = e.touches ? e.touches[0] : e
-    ctx.beginPath(); ctx.moveTo(src.clientX - r.left, src.clientY - r.top)
+    const scaleX = canvas.width / r.width
+    const scaleY = canvas.height / r.height
+    ctx.beginPath()
+    ctx.moveTo((src.clientX - r.left) * scaleX, (src.clientY - r.top) * scaleY)
   }
 
   function doModalDraw(e: any) {
@@ -111,8 +114,10 @@ export default function ConsentPage() {
     const ctx = canvas.getContext('2d')!
     const r = canvas.getBoundingClientRect()
     const src = e.touches ? e.touches[0] : e
+    const scaleX = canvas.width / r.width
+    const scaleY = canvas.height / r.height
     ctx.strokeStyle = '#000000'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'
-    ctx.lineTo(src.clientX - r.left, src.clientY - r.top)
+    ctx.lineTo((src.clientX - r.left) * scaleX, (src.clientY - r.top) * scaleY)
     ctx.stroke()
   }
 
