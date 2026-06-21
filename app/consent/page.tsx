@@ -90,7 +90,7 @@ export default function ConsentPage() {
   function stopDraw() { drawing.current = false }
 
   function clearCanvas() {
-    canvasRef.current?.getContext('2d')?.clearRect(0, 0, 280, 80)
+    canvasRef.current?.getContext('2d')?.clearRect(0, 0, 200, 80)
   }
 
   function startHighlight(e: any) {
@@ -321,7 +321,7 @@ export default function ConsentPage() {
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>서명</label>
               <div style={{ border: '2px solid #ddd', borderRadius: 8, overflow: 'hidden', position: 'relative', background: '#fafafa' }}>
-                <canvas ref={canvasRef} width={280} height={80}
+                <canvas ref={canvasRef} width={200} height={80}
                   onMouseDown={(e) => { setPenMode('sign'); startDraw(e) }}
                   onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
                   onTouchStart={(e) => { setPenMode('sign'); startDraw(e) }}
