@@ -277,7 +277,7 @@ export default function ConsentPage() {
               <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 4px', borderBottom: '1px solid #f0f0f0', alignItems: 'flex-start' }}>
                 <span style={{ minWidth: 22, width: 22, height: 22, borderRadius: '50%', background: '#1E90FF', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
                 <span style={{ flex: '0 0 90px', fontSize: 13, fontWeight: 700, color: '#1E90FF', wordBreak: 'keep-all' }}>{item.label}</span>
-                <span style={{ flex: 1, fontSize: 13, color: '#444', lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'keep-all' }}>{item.content}</span>
+                <span style={{ flex: 1, fontSize: 11, color: '#444', lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'keep-all' }}>{item.content}</span>
               </div>
             ))}
           </div>
