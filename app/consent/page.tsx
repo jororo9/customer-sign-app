@@ -34,7 +34,6 @@ export default function ConsentPage() {
   const [contractDate, setContractDate] = useState(new Date().toISOString().split('T')[0])
   const [checked, setChecked] = useState(false)
   const [capturing, setCapturing] = useState(false)
-  const [penMode, setPenMode] = useState<'highlighter' | 'sign'>('sign')
   const [signModal, setSignModal] = useState(false)
   const [signImage, setSignImage] = useState<string | null>(null)
   const highlightRef = useRef<HTMLCanvasElement>(null)
@@ -116,40 +115,6 @@ export default function ConsentPage() {
     const canvas = modalCanvasRef.current!
     setSignImage(canvas.toDataURL('image/png'))
     setSignModal(false)
-  }
-
-  function startHighlight(e: any) {
-    if (penMode !== 'highlighter') return
-    const canvas = highlightRef.current!
-    const ctx = canvas.getContext('2d')!
-    const r = canvas.getBoundingClientRect()
-    const src = e.touches ? e.touches[0] : e
-    modalDrawing.current = true
-    ctx.beginPath()
-    ctx.moveTo(src.clientX - r.left, src.clientY - r.top)
-  }
-
-  function doHighlight(e: any) {
-    if (!modalDrawing.current || penMode !== 'highlighter') return
-    const canvas = highlightRef.current!
-    const ctx = canvas.getContext('2d')!
-    const r = canvas.getBoundingClientRect()
-    const src = e.touches ? e.touches[0] : e
-    ctx.globalAlpha = 0.01
-    ctx.strokeStyle = '#FFE500'
-    ctx.lineWidth = 20
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    ctx.lineTo(src.clientX - r.left, src.clientY - r.top)
-    ctx.stroke()
-  }
-
-  function stopHighlight() { modalDrawing.current = false }
-
-  function clearHighlight() {
-    const canvas = highlightRef.current
-    if (!canvas) return
-    canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
   }
 
   useEffect(() => {
@@ -240,15 +205,13 @@ export default function ConsentPage() {
         </div>
       )}
 
-      
-
       <div ref={formRef} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 8px 32px rgba(30,144,255,0.10)', overflow: 'hidden' }}>
 
         {/* 탭 */}
         {!capturing && (
           <div style={{ display: 'flex', borderBottom: '2px solid #f0f0f0' }}>
             {CATEGORIES.map(c => (
-              <button key={c.key} onClick={() => { setTab(c.key); setChecked(false); setSignImage(null); clearHighlight() }}
+              <button key={c.key} onClick={() => { setTab(c.key); setChecked(false); setSignImage(null) }}
                 style={{ flex: 1, padding: 16, border: 'none', background: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer', color: tab === c.key ? '#1E90FF' : '#aaa', borderBottom: tab === c.key ? '3px solid #1E90FF' : '3px solid transparent', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>
                 {c.label}
               </button>
@@ -302,24 +265,17 @@ export default function ConsentPage() {
               <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>약정기간</span></div>
               <div style={tdStyle}>
                 {capturing ? <div style={{ fontSize: 15, color: '#1E90FF', fontWeight: 700 }}>{contractPeriod}</div>
-                  : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 24개월" style={{ ...inputStyle, fontSize: 15, color: '#1E90FF', fontWeight: 700 }} />}
+                  : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 12개월" style={{ ...inputStyle, fontSize: 15, color: '#1E90FF', fontWeight: 700 }} />}
               </div>
             </div>
           </div>
 
           {/* 안내사항 */}
           <div ref={noticeRef} style={{ position: 'relative' }}>
-            {!capturing && (
-              <canvas ref={highlightRef}
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, cursor: penMode === 'highlighter' ? 'crosshair' : 'default', pointerEvents: penMode === 'highlighter' ? 'auto' : 'none' }}
-                onMouseDown={startHighlight} onMouseMove={doHighlight} onMouseUp={stopHighlight} onMouseLeave={stopHighlight}
-                onTouchStart={startHighlight} onTouchMove={doHighlight} onTouchEnd={stopHighlight}
-              />
-            )}
             <div style={{ borderBottom: '2.5px solid #1E90FF', marginBottom: 4 }}></div>
             {current.items.map((item, i) => (
               <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 4px', borderBottom: '1px solid #f0f0f0', alignItems: 'flex-start' }}>
-                <span style={{ minWidth: 22, height: 22, borderRadius: '50%', background: '#1E90FF', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-block', textAlign: 'center', lineHeight: '22px', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
+                <span style={{ minWidth: 22, width: 22, height: 22, borderRadius: '50%', background: '#1E90FF', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
                 <span style={{ flex: '0 0 90px', fontSize: 13, fontWeight: 700, color: '#1E90FF', wordBreak: 'keep-all' }}>{item.label}</span>
                 <span style={{ flex: 1, fontSize: 13, color: '#444', lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'keep-all' }}>{item.content}</span>
               </div>
