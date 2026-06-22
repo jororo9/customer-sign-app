@@ -336,7 +336,7 @@ export default function ConsentPage() {
           {/* 서명 테이블 */}
           <div style={{ border: '1.5px solid #e8ecf0', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
             <div style={{ display: 'flex', borderBottom: '1px solid #e8ecf0' }}>
-              <div style={{ ...thStyle, flex: '0 0 65px' }}>
+              <div style={{ ...thStyle, flex: '0 0 80px' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>계약일자</span>
               </div>
               <div style={tdStyle}>
