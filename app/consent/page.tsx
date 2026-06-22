@@ -385,7 +385,7 @@ export default function ConsentPage() {
                   ? <div style={{ fontSize: 13 }}>{contractDate}</div>
                   : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={{ ...inputStyle, fontSize: 13 }} />}
               </div>
-              <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>고객 성명</span></div>
+              <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>학부모 성명</span></div>
               <div style={tdStyle}>
                 {capturing
                   ? <div style={{ fontSize: 14, fontWeight: 600 }}>{customerName}</div>
