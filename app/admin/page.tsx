@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface NoticeItem { label: string; content: string }
-type CategoryData = { title: string; items: NoticeItem[]; confirm_text: string; logo_url: string }
+type CategoryData = {
+  title: string
+  items: NoticeItem[]
+  confirm_text: string
+  logo_url: string
+  product_options: string[]
+  period_options: string[]
+}
 
 const CATEGORIES = [
   { key: 'infant', label: '유아' },
@@ -15,14 +22,16 @@ const defaultData: CategoryData = {
   title: '필수 안내사항 확인',
   items: [{ label: '', content: '' }],
   confirm_text: '위 안내사항을 모두 확인하였으며, 내용을 충분히 안내받았음을 확인합니다.',
-  logo_url: ''
+  logo_url: '',
+  product_options: [''],
+  period_options: [''],
 }
 
 export default function AdminPage() {
   const [tab, setTab] = useState('infant')
   const [data, setData] = useState<Record<string, CategoryData>>({
-    infant: { ...defaultData, items: [...defaultData.items] },
-    junior: { ...defaultData, items: [...defaultData.items] }
+    infant: { ...defaultData, items: [...defaultData.items], product_options: [''], period_options: [''] },
+    junior: { ...defaultData, items: [...defaultData.items], product_options: [''], period_options: [''] }
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -34,8 +43,8 @@ export default function AdminPage() {
     const { data: rows } = await supabase.from('consent_notices').select('*')
     if (!rows) return
     const next: Record<string, CategoryData> = {
-      infant: { ...defaultData, items: [...defaultData.items] },
-      junior: { ...defaultData, items: [...defaultData.items] }
+      infant: { ...defaultData, items: [...defaultData.items], product_options: [''], period_options: [''] },
+      junior: { ...defaultData, items: [...defaultData.items], product_options: [''], period_options: [''] }
     }
     rows.forEach(row => {
       if (row.category === 'infant' || row.category === 'junior') {
@@ -43,7 +52,9 @@ export default function AdminPage() {
           title: row.title,
           items: row.items,
           confirm_text: row.confirm_text || defaultData.confirm_text,
-          logo_url: row.logo_url || ''
+          logo_url: row.logo_url || '',
+          product_options: row.product_options || [''],
+          period_options: row.period_options || [''],
         }
       }
     })
@@ -66,12 +77,32 @@ export default function AdminPage() {
     set('items', next)
   }
 
+  function addProductOption() { set('product_options', [...(get('product_options') as string[]), '']) }
+  function removeProductOption(i: number) {
+    set('product_options', (get('product_options') as string[]).filter((_: string, idx: number) => idx !== i))
+  }
+  function updateProductOption(i: number, value: string) {
+    const next = [...(get('product_options') as string[])]
+    next[i] = value
+    set('product_options', next)
+  }
+
+  function addPeriodOption() { set('period_options', [...(get('period_options') as string[]), '']) }
+  function removePeriodOption(i: number) {
+    set('period_options', (get('period_options') as string[]).filter((_: string, idx: number) => idx !== i))
+  }
+  function updatePeriodOption(i: number, value: string) {
+    const next = [...(get('period_options') as string[])]
+    next[i] = value
+    set('period_options', next)
+  }
+
   async function uploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true)
     const fileName = `${tab}_logo_${Date.now()}.${file.name.split('.').pop()}`
-    const { data: uploadData, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('consent-logos')
       .upload(fileName, file, { upsert: true })
     if (error) {
@@ -93,11 +124,34 @@ export default function AdminPage() {
       items: get('items'),
       confirm_text: get('confirm_text'),
       logo_url: get('logo_url'),
+      product_options: get('product_options'),
+      period_options: get('period_options'),
       updated_at: new Date().toISOString()
     })
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  const sectionBox: React.CSSProperties = {
+    marginBottom: 28, padding: 20, background: '#f8f9ff',
+    border: '1.5px solid #d0d5f0', borderRadius: 10,
+  }
+  const sectionLabel: React.CSSProperties = {
+    fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 12,
+  }
+  const optionInput: React.CSSProperties = {
+    flex: 1, padding: '7px 10px', fontSize: 13,
+    border: '1.5px solid #ddd', borderRadius: 6, outline: 'none',
+    fontFamily: 'var(--font-noto-sans-kr), sans-serif',
+  }
+  const addBtn: React.CSSProperties = {
+    width: '100%', padding: 8, border: '1.5px dashed #ccc', borderRadius: 8,
+    background: 'none', color: '#888', fontSize: 13, cursor: 'pointer',
+    fontFamily: 'var(--font-noto-sans-kr), sans-serif', marginTop: 4,
+  }
+  const removeBtn: React.CSSProperties = {
+    background: 'none', border: 'none', color: '#ccc', fontSize: 20, cursor: 'pointer',
   }
 
   return (
@@ -128,8 +182,8 @@ export default function AdminPage() {
         <div style={{ padding: '32px 36px' }}>
 
           {/* 로고 업로드 */}
-          <div style={{ marginBottom: 28, padding: 20, background: '#f8f9ff', border: '1.5px solid #d0d5f0', borderRadius: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 12 }}>로고 이미지</div>
+          <div style={sectionBox}>
+            <div style={sectionLabel}>로고 이미지</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               {get('logo_url') && (
                 <img src={get('logo_url') as string} alt="로고" style={{ height: 40, objectFit: 'contain' }} />
@@ -142,6 +196,40 @@ export default function AdminPage() {
                 <button onClick={() => set('logo_url', '')} style={{ background: 'none', border: 'none', color: '#e74c3c', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>삭제</button>
               )}
             </div>
+          </div>
+
+          {/* 상품 선택지 */}
+          <div style={sectionBox}>
+            <div style={sectionLabel}>상품 선택지</div>
+            {(get('product_options') as string[]).map((opt: string, i: number) => (
+              <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input
+                  value={opt}
+                  onChange={e => updateProductOption(i, e.target.value)}
+                  placeholder={`상품 ${i + 1}`}
+                  style={optionInput}
+                />
+                <button onClick={() => removeProductOption(i)} style={removeBtn}>×</button>
+              </div>
+            ))}
+            <button onClick={addProductOption} style={addBtn}>＋ 상품 추가</button>
+          </div>
+
+          {/* 약정기간 선택지 */}
+          <div style={sectionBox}>
+            <div style={sectionLabel}>약정기간 선택지</div>
+            {(get('period_options') as string[]).map((opt: string, i: number) => (
+              <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input
+                  value={opt}
+                  onChange={e => updatePeriodOption(i, e.target.value)}
+                  placeholder={`기간 ${i + 1} (예: 24개월)`}
+                  style={optionInput}
+                />
+                <button onClick={() => removePeriodOption(i)} style={removeBtn}>×</button>
+              </div>
+            ))}
+            <button onClick={addPeriodOption} style={addBtn}>＋ 기간 추가</button>
           </div>
 
           {/* 안내사항 */}
@@ -166,8 +254,8 @@ export default function AdminPage() {
           <hr style={{ border: 'none', borderTop: '1.5px solid #eee', margin: '28px 0' }} />
 
           {/* 확인 문구 */}
-          <div style={{ background: '#f8f9ff', border: '1.5px solid #d0d5f0', borderRadius: 10, padding: '16px 20px', marginBottom: 28 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 8 }}>확인 문구</div>
+          <div style={{ ...sectionBox, marginBottom: 28 }}>
+            <div style={sectionLabel}>확인 문구</div>
             <input value={get('confirm_text')} onChange={e => set('confirm_text', e.target.value)} placeholder="확인 문구 입력" style={{ width: '100%', fontSize: 14, color: '#333', fontWeight: 500, border: 'none', borderBottom: '1.5px solid #d0d5f0', background: 'transparent', outline: 'none', fontFamily: 'var(--font-noto-sans-kr), sans-serif', padding: '4px 0' }} />
           </div>
 

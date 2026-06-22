@@ -6,7 +6,14 @@ import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 
 interface NoticeItem { label: string; content: string }
-type CategoryData = { title: string; items: NoticeItem[]; confirm_text: string; logo_url: string }
+type CategoryData = {
+  title: string
+  items: NoticeItem[]
+  confirm_text: string
+  logo_url: string
+  product_options: string[]
+  period_options: string[]
+}
 
 const CATEGORIES = [
   { key: 'infant', label: '유아' },
@@ -17,14 +24,16 @@ const defaultData: CategoryData = {
   title: '필수 안내사항 확인',
   items: [],
   confirm_text: '위 안내사항을 모두 확인하였으며, 내용을 충분히 안내받았음을 확인합니다.',
-  logo_url: ''
+  logo_url: '',
+  product_options: [],
+  period_options: [],
 }
 
 export default function ConsentPage() {
   const [tab, setTab] = useState('infant')
   const [data, setData] = useState<Record<string, CategoryData>>({
-    infant: { ...defaultData, items: [], logo_url: '' },
-    junior: { ...defaultData, items: [], logo_url: '' }
+    infant: { ...defaultData, items: [], product_options: [], period_options: [] },
+    junior: { ...defaultData, items: [], product_options: [], period_options: [] }
   })
   const [studentName, setStudentName] = useState('')
   const [studentId, setStudentId] = useState('')
@@ -65,8 +74,8 @@ export default function ConsentPage() {
     const { data: rows } = await supabase.from('consent_notices').select('*')
     if (!rows) return
     const next: Record<string, CategoryData> = {
-      infant: { ...defaultData, items: [], logo_url: '' },
-      junior: { ...defaultData, items: [], logo_url: '' }
+      infant: { ...defaultData, items: [], product_options: [], period_options: [] },
+      junior: { ...defaultData, items: [], product_options: [], period_options: [] }
     }
     rows.forEach(row => {
       if (row.category === 'infant' || row.category === 'junior') {
@@ -74,7 +83,9 @@ export default function ConsentPage() {
           title: row.title,
           items: row.items,
           confirm_text: row.confirm_text || defaultData.confirm_text,
-          logo_url: row.logo_url || ''
+          logo_url: row.logo_url || '',
+          product_options: row.product_options || [],
+          period_options: row.period_options || [],
         }
       }
     })
@@ -213,9 +224,15 @@ export default function ConsentPage() {
   }
 
   const current = data[tab]
+
   const inputStyle: React.CSSProperties = {
     border: 'none', background: 'transparent', outline: 'none', width: '100%',
     fontSize: 14, fontFamily: 'var(--font-noto-sans-kr), sans-serif', color: '#1a1a2e', padding: '2px 0'
+  }
+  const selectStyle: React.CSSProperties = {
+    border: 'none', background: 'transparent', outline: 'none', width: '100%',
+    fontSize: 14, fontFamily: 'var(--font-noto-sans-kr), sans-serif', color: '#1a1a2e', padding: '2px 0',
+    cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none',
   }
   const thStyle: React.CSSProperties = {
     flex: '0 0 80px', background: '#f5f7fa', padding: '11px 12px',
@@ -254,7 +271,7 @@ export default function ConsentPage() {
         {!capturing && (
           <div style={{ display: 'flex', borderBottom: '2px solid #f0f0f0' }}>
             {CATEGORIES.map(c => (
-              <button key={c.key} onClick={() => { setTab(c.key); setChecked(false); setSignImage(null) }}
+              <button key={c.key} onClick={() => { setTab(c.key); setChecked(false); setSignImage(null); setProduct(''); setContractPeriod('') }}
                 style={{ flex: 1, padding: 16, border: 'none', background: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer', color: tab === c.key ? '#1E90FF' : '#aaa', borderBottom: tab === c.key ? '3px solid #1E90FF' : '3px solid transparent', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>
                 {c.label}
               </button>
@@ -290,25 +307,49 @@ export default function ConsentPage() {
             <div style={{ display: 'flex', borderBottom: '1px solid #e8ecf0' }}>
               <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>학생명</span></div>
               <div style={tdStyle}>
-                {capturing ? <div style={{ fontSize: 14 }}>{studentName}</div>
+                {capturing
+                  ? <div style={{ fontSize: 14 }}>{studentName}</div>
                   : <input value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="이름 입력" style={inputStyle} />}
               </div>
               <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>아이디</span></div>
               <div style={tdStyle}>
-                {capturing ? <div style={{ fontSize: 14 }}>{studentId}</div>
+                {capturing
+                  ? <div style={{ fontSize: 14 }}>{studentId}</div>
                   : <input value={studentId} onChange={e => setStudentId(e.target.value)} placeholder="아이디 입력" style={inputStyle} />}
               </div>
             </div>
             <div style={{ display: 'flex' }}>
               <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>상품</span></div>
               <div style={tdStyle}>
-                {capturing ? <div style={{ fontSize: 14, fontWeight: 600 }}>{product}</div>
-                  : <input value={product} onChange={e => setProduct(e.target.value)} placeholder="상품명 입력" style={{ ...inputStyle, fontWeight: 600 }} />}
+                {capturing
+                  ? <div style={{ fontSize: 14, fontWeight: 600 }}>{product}</div>
+                  : (
+                    <div style={{ position: 'relative' }}>
+                      <select value={product} onChange={e => setProduct(e.target.value)} style={{ ...selectStyle, fontWeight: 600 }}>
+                        <option value="">상품 선택</option>
+                        {current.product_options?.filter(o => o.trim()).map((opt: string) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                      <span style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#aaa', fontSize: 10 }}>▼</span>
+                    </div>
+                  )}
               </div>
               <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>약정기간</span></div>
               <div style={tdStyle}>
-                {capturing ? <div style={{ fontSize: 15, color: '#1E90FF', fontWeight: 700 }}>{contractPeriod}</div>
-                  : <input value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} placeholder="예) 24개월" style={{ ...inputStyle, fontSize: 15, color: '#1E90FF', fontWeight: 700 }} />}
+                {capturing
+                  ? <div style={{ fontSize: 15, color: '#1E90FF', fontWeight: 700 }}>{contractPeriod}</div>
+                  : (
+                    <div style={{ position: 'relative' }}>
+                      <select value={contractPeriod} onChange={e => setContractPeriod(e.target.value)} style={{ ...selectStyle, fontSize: 15, color: '#1E90FF', fontWeight: 700 }}>
+                        <option value="">기간 선택</option>
+                        {current.period_options?.filter(o => o.trim()).map((opt: string) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                      <span style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#aaa', fontSize: 10 }}>▼</span>
+                    </div>
+                  )}
               </div>
             </div>
           </div>
@@ -340,12 +381,14 @@ export default function ConsentPage() {
             <div style={{ display: 'flex', borderBottom: '1px solid #e8ecf0' }}>
               <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>계약일자</span></div>
               <div style={tdStyle}>
-                {capturing ? <div style={{ fontSize: 13 }}>{contractDate}</div>
+                {capturing
+                  ? <div style={{ fontSize: 13 }}>{contractDate}</div>
                   : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={{ ...inputStyle, fontSize: 13 }} />}
               </div>
               <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>고객 성명</span></div>
               <div style={tdStyle}>
-                {capturing ? <div style={{ fontSize: 14, fontWeight: 600 }}>{customerName}</div>
+                {capturing
+                  ? <div style={{ fontSize: 14, fontWeight: 600 }}>{customerName}</div>
                   : <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="성명" style={{ ...inputStyle, fontWeight: 600 }} />}
               </div>
             </div>
