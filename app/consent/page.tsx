@@ -247,29 +247,7 @@ export default function ConsentPage() {
         </div>
       )}
 
-      {/* 이메일 모달 */}
-      {emailModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.75)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6, textAlign: 'center' }}>📧 이메일로 PDF 전송</div>
-            <div style={{ fontSize: 12, color: '#aaa', textAlign: 'center', marginBottom: 16 }}>받는 사람 이메일을 입력해주세요</div>
-            <input
-              type="email"
-              value={emailInput}
-              onChange={e => setEmailInput(e.target.value)}
-              placeholder="example@email.com"
-              style={{ width: '100%', padding: '12px', border: '1.5px solid #1E90FF', borderRadius: 10, fontSize: 14, marginBottom: 16, boxSizing: 'border-box', outline: 'none', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}
-            />
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setEmailModal(false)} style={{ flex: 1, padding: 13, background: '#f5f5f5', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', color: '#888', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>취소</button>
-              <button onClick={sendEmail} disabled={emailSending} style={{ flex: 2, padding: 13, background: '#1E90FF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', color: '#fff', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>
-                {emailSending ? '전송 중...' : '✉️ 전송'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+    
       <div ref={formRef} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 8px 32px rgba(30,144,255,0.10)', overflow: 'hidden' }}>
 
         {/* 탭 */}
@@ -395,7 +373,7 @@ export default function ConsentPage() {
 
           {/* 저장 버튼 */}
           {!capturing && (
-            <div style={{ display: 'flex', gap: 12, flexDirection: 'column' }}>
+            <div style={{ display: 'flex', gap: 12 }}>
               <div style={{ display: 'flex', gap: 12 }}>
                 <button onClick={savePDF} style={{ flex: 1, padding: 14, background: 'linear-gradient(135deg, #1E90FF, #0066cc)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(30,144,255,0.3)' }}>
                   📄 PDF 저장
@@ -404,9 +382,7 @@ export default function ConsentPage() {
                   🖼 이미지 저장
                 </button>
               </div>
-              <button onClick={() => setEmailModal(true)} style={{ width: '100%', padding: 14, background: '#fff', color: '#1E90FF', border: '1.5px solid #1E90FF', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>
-                📧 이메일로 PDF 전송
-              </button>
+    
             </div>
           )}
 
