@@ -45,9 +45,6 @@ export default function ConsentPage() {
   const [capturing, setCapturing] = useState(false)
   const [signModal, setSignModal] = useState(false)
   const [signImage, setSignImage] = useState<string | null>(null)
-  const [emailModal, setEmailModal] = useState(false)
-  const [emailInput, setEmailInput] = useState('')
-  const [emailSending, setEmailSending] = useState(false)
   const highlightRef = useRef<HTMLCanvasElement>(null)
   const noticeRef = useRef<HTMLDivElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
@@ -184,45 +181,6 @@ export default function ConsentPage() {
     pdf.save(`${studentName || '고객'}_안내확인서_${contractDate}.pdf`)
   }
 
-  async function sendEmail() {
-    if (!emailInput) return alert('이메일을 입력해주세요')
-    setEmailSending(true)
-    const canvas = await capture()
-    if (!canvas) { setEmailSending(false); return }
-    const imgData = canvas.toDataURL('image/png')
-    const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
-    const pageW = 210, pageH = 297
-    const imgW = pageW
-    const imgH = canvas.height * imgW / canvas.width
-    let heightLeft = imgH, position = 0
-    pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
-    heightLeft -= pageH
-    while (heightLeft > 0) {
-      position -= pageH; pdf.addPage()
-      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
-      heightLeft -= pageH
-    }
-    const pdfBase64 = pdf.output('datauristring').split(',')[1]
-    const res = await fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: emailInput,
-        studentName: studentName || '고객',
-        contractDate,
-        pdfBase64,
-      }),
-    })
-    setEmailSending(false)
-    if (res.ok) {
-      alert('✅ 이메일 전송 완료!')
-      setEmailModal(false)
-      setEmailInput('')
-    } else {
-      alert('❌ 전송 실패. 다시 시도해주세요.')
-    }
-  }
-
   const current = data[tab]
 
   const inputStyle: React.CSSProperties = {
@@ -264,7 +222,6 @@ export default function ConsentPage() {
         </div>
       )}
 
-    
       <div ref={formRef} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 8px 32px rgba(30,144,255,0.10)', overflow: 'hidden' }}>
 
         {/* 탭 */}
@@ -379,13 +336,17 @@ export default function ConsentPage() {
           {/* 서명 테이블 */}
           <div style={{ border: '1.5px solid #e8ecf0', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
             <div style={{ display: 'flex', borderBottom: '1px solid #e8ecf0' }}>
-              <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>계약일자</span></div>
+              <div style={{ ...thStyle, flex: '0 0 65px' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>계약일자</span>
+              </div>
               <div style={tdStyle}>
                 {capturing
                   ? <div style={{ fontSize: 13 }}>{contractDate}</div>
                   : <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} style={{ ...inputStyle, fontSize: 13 }} />}
               </div>
-              <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>학부모 성명</span></div>
+              <div style={{ ...thStyle, borderLeft: '1px solid #e8ecf0', flex: '0 0 90px' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>학부모 성명</span>
+              </div>
               <div style={tdStyle}>
                 {capturing
                   ? <div style={{ fontSize: 14, fontWeight: 600 }}>{customerName}</div>
@@ -417,12 +378,12 @@ export default function ConsentPage() {
           {/* 저장 버튼 */}
           {!capturing && (
             <div style={{ display: 'flex', gap: 12 }}>
-                <button onClick={savePDF} style={{ flex: 1, padding: 14, background: 'linear-gradient(135deg, #1E90FF, #0066cc)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(30,144,255,0.3)' }}>
-                  📄 PDF 저장
-                </button>
-                <button onClick={saveImage} style={{ flex: 1, padding: 14, background: '#fff', color: '#1E90FF', border: '1.5px solid #1E90FF', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>
-                  🖼 이미지 저장
-                </button>
+              <button onClick={savePDF} style={{ flex: 1, padding: 14, background: 'linear-gradient(135deg, #1E90FF, #0066cc)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(30,144,255,0.3)' }}>
+                📄 PDF 저장
+              </button>
+              <button onClick={saveImage} style={{ flex: 1, padding: 14, background: '#fff', color: '#1E90FF', border: '1.5px solid #1E90FF', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>
+                🖼 이미지 저장
+              </button>
             </div>
           )}
 
