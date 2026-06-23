@@ -429,7 +429,7 @@ export default function ConsentPage() {
 
           <hr style={{ border: 'none', borderTop: '1.5px solid #eee', margin: '20px 0' }} />
 
-          <div style={{ background: 'linear-gradient(135deg, #f0f8ff, #e8f4ff)', border: '1.5px solid #b3d9ff', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+          <div style={{ background: 'linear-gradient(135deg, #ffffff, #e8f4ff)', border: '1.5px solid #b3d9ff', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
               <input type="checkbox" checked={checked} onChange={e => setChecked(e.target.checked)} style={{ marginTop: 2, width: 18, height: 18, flexShrink: 0, accentColor: '#1E90FF' }} />
               <span style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 500, wordBreak: 'keep-all', lineHeight: 1.6 }}>{current.confirm_text}</span>
@@ -466,7 +466,7 @@ export default function ConsentPage() {
                     )}
                   </div>
                 ) : (
-                  <div onClick={() => setSignModal(true)} style={{ border: '2px dashed #1E90FF', borderRadius: 8, background: '#f0f8ff', minHeight: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 6 }}>
+                  <div onClick={() => setSignModal(true)} style={{ border: '2px dashed #1E90FF', borderRadius: 8, background: '#ffffff', minHeight: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 6 }}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E90FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                     </svg>
