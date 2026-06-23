@@ -155,10 +155,9 @@ async function capture() {
   await document.fonts.ready
   await new Promise(r => setTimeout(r, 1000))
   
-  // 캡처 전 임시로 바깥 배경색 흰색으로 변경
-  const outerDiv = formRef.current.parentElement
-  const originalBg = outerDiv?.style.background || ''
-  if (outerDiv) outerDiv.style.background = '#ffffff'
+  // 캡처 전 body 배경 흰색으로
+  document.body.style.background = '#ffffff'
+  document.documentElement.style.background = '#ffffff'
   
   const canvas = await html2canvas(formRef.current, {
     scale: 1, 
@@ -168,13 +167,13 @@ async function capture() {
     allowTaint: true,
   })
   
-  // 캡처 후 원래 배경색 복원
-  if (outerDiv) outerDiv.style.background = originalBg
+  // 복원
+  document.body.style.background = ''
+  document.documentElement.style.background = ''
   
   setCapturing(false)
   return canvas
 }
-
   // ✅ Vercel Blob에 파일 업로드하고 URL 반환
   async function uploadToBlob(blob: Blob, filename: string): Promise<string> {
     const formData = new FormData()
