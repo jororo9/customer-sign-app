@@ -248,11 +248,13 @@ async function savePDF() {
     let heightLeft = imgH, position = 0
     pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
     heightLeft -= pageH
-    while (heightLeft > 0) {
-      position -= pageH; pdf.addPage()
-      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
-      heightLeft -= pageH
-    }
+while (heightLeft > 0) {
+  position -= pageH; pdf.addPage()
+  pdf.setFillColor(255, 255, 255)
+  pdf.rect(0, 0, pageW, pageH, 'F')
+  pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
+  heightLeft -= pageH
+}
 
     // ① 내 기기에 PDF 다운로드 (기존 로직)
     const filename = `${studentName || '고객'}_안내확인서_${contractDate}.pdf`
