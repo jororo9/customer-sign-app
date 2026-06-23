@@ -306,8 +306,7 @@ while (heightLeft > 0) {
   const tdStyle: React.CSSProperties = { flex: 1, padding: '9px 12px' }
 
   return (
-<div style={{ maxWidth: 720, margin: '0 auto', padding: '16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: capturing ? '#ffffff' : '#EBF5FF', minHeight: '100vh' }}>
-
+<div style={{ maxWidth: 720, margin: '0 auto', padding: '16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#ffffff', minHeight: '100vh' }}>
       {/* ✅ 업로드 로딩 오버레이 */}
       {uploading && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
