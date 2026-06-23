@@ -149,17 +149,23 @@ export default function ConsentPage() {
     return () => window.removeEventListener('resize', updateSize)
   }, [data, tab])
 
-  async function capture() {
-    if (!formRef.current) return null
-    setCapturing(true)
-    await document.fonts.ready
-    await new Promise(r => setTimeout(r, 1000))
-    const canvas = await html2canvas(formRef.current, {
-      scale: 1, backgroundColor: '#fff', useCORS: true, logging: false, allowTaint: true,
-    })
-    setCapturing(false)
-    return canvas
-  }
+async function capture() {
+  if (!formRef.current) return null
+  setCapturing(true)
+  await document.fonts.ready
+  await new Promise(r => setTimeout(r, 1000))
+  const canvas = await html2canvas(formRef.current, {
+    scale: 1, 
+    backgroundColor: '#ffffff',  // '#fff' → '#ffffff' 로 변경
+    useCORS: true, 
+    logging: false, 
+    allowTaint: true,
+    windowWidth: formRef.current.scrollWidth,
+    windowHeight: formRef.current.scrollHeight,
+  })
+  setCapturing(false)
+  return canvas
+}
 
   // ✅ Vercel Blob에 파일 업로드하고 URL 반환
   async function uploadToBlob(blob: Blob, filename: string): Promise<string> {
