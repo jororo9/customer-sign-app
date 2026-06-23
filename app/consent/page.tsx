@@ -492,16 +492,17 @@ async function capture() {
             </div>
           </div>
 
-          {!capturing && (
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={savePDF} style={{ flex: 1, padding: 14, background: 'linear-gradient(135deg, #1E90FF, #0066cc)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(30,144,255,0.3)' }}>
-                📄 PDF 저장
-              </button>
-              <button onClick={saveImage} style={{ flex: 1, padding: 14, background: '#fff', color: '#1E90FF', border: '1.5px solid #1E90FF', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>
-                🖼 이미지 저장
-              </button>
-            </div>
-          )}
+{/* 저장 버튼 */}
+{!capturing && (
+  <div style={{ display: 'flex', gap: 12 }}>
+    <button onClick={savePDF} style={{ flex: 1, padding: 14, background: '#fff', color: '#1E90FF', border: '1.5px solid #1E90FF', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>
+      📄 PDF 저장
+    </button>
+    <button onClick={saveImage} style={{ flex: 1, padding: 14, background: 'linear-gradient(135deg, #1E90FF, #0066cc)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(30,144,255,0.3)' }}>
+      🖼 이미지 저장
+    </button>
+  </div>
+)}
 
         </div>
       </div>
