@@ -47,7 +47,6 @@ export default function ConsentPage() {
   const [signModal, setSignModal] = useState(false)
   const [signImage, setSignImage] = useState<string | null>(null)
 
-  // ✅ QR 모달 관련 상태
   const [qrModal, setQrModal] = useState(false)
   const [qrUrl, setQrUrl] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -61,7 +60,6 @@ export default function ConsentPage() {
   useEffect(() => { loadAll() }, [])
 
   useEffect(() => {
-    // 서명 모달 또는 QR 모달 열릴 때 스크롤 막기
     if (signModal || qrModal) {
       document.body.style.overflow = 'hidden'
       document.body.style.touchAction = 'none'
@@ -149,53 +147,39 @@ export default function ConsentPage() {
     return () => window.removeEventListener('resize', updateSize)
   }, [data, tab])
 
-async function capture() {
-  if (!formRef.current) return null
-  setCapturing(true)
-  await document.fonts.ready
-  await new Promise(r => setTimeout(r, 1000))
-  
-  // 캡처 전 body 배경 흰색으로
-  document.body.style.background = '#ffffff'
-  document.documentElement.style.background = '#ffffff'
-  
-  const canvas = await html2canvas(formRef.current, {
-    scale: 1, 
-    backgroundColor: '#ffffff',
-    useCORS: true, 
-    logging: false, 
-    allowTaint: true,
-  })
-  
-  // 복원
-  document.body.style.background = ''
-  document.documentElement.style.background = ''
-  
-  setCapturing(false)
-  return canvas
-}
-  // ✅ Vercel Blob에 파일 업로드하고 URL 반환
+  async function capture() {
+    if (!formRef.current) return null
+    setCapturing(true)
+    await document.fonts.ready
+    await new Promise(r => setTimeout(r, 1000))
+    const canvas = await html2canvas(formRef.current, {
+      scale: 1,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false,
+      allowTaint: true,
+    })
+    setCapturing(false)
+    return canvas
+  }
+
   async function uploadToBlob(blob: Blob, filename: string): Promise<string> {
     const formData = new FormData()
     formData.append('file', blob, filename)
-
     const res = await fetch('/api/upload', {
       method: 'POST',
       body: formData,
     })
-
     if (!res.ok) throw new Error('업로드 실패')
     const json = await res.json()
-    return json.url // Vercel Blob이 반환한 다운로드 URL
+    return json.url
   }
 
-  // ✅ QR 모달 열기
   function openQrModal(url: string) {
     setQrUrl(url)
     setQrModal(true)
   }
 
-  // ✅ QR 모달 닫기 + 화면 리셋
   function closeQrAndReset() {
     setQrModal(false)
     setQrUrl('')
@@ -210,20 +194,18 @@ async function capture() {
   }
 
   async function saveImage() {
-     if (!checked) {
-    alert('안내사항을 체크해주세요!')
-    return
-  }
+    if (!checked) {
+      alert('안내사항을 체크해주세요!')
+      return
+    }
     const canvas = await capture()
     if (!canvas) return
 
-    // ① 내 기기에 PNG 다운로드 (기존 로직)
     const link = document.createElement('a')
     link.download = `${studentName || '고객'}_안내확인서_${contractDate}.png`
     link.href = canvas.toDataURL('image/png')
     link.click()
 
-    // ② Vercel Blob에 업로드 후 QR 모달 표시
     try {
       setUploading(true)
       canvas.toBlob(async (blob) => {
@@ -239,43 +221,38 @@ async function capture() {
     }
   }
 
-async function savePDF() {
-  if (!checked) {
-    alert('안내사항을 체크해주세요!')
-    return
-  }
+  async function savePDF() {
+    if (!checked) {
+      alert('안내사항을 체크해주세요!')
+      return
+    }
     const canvas = await capture()
     if (!canvas) return
 
     const imgData = canvas.toDataURL('image/png')
-const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
-const pageW = 210, pageH = 297
-const imgW = pageW
-const imgH = canvas.height * imgW / canvas.width
+    const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
+    const pageW = 210, pageH = 297
+    const imgW = pageW
+    const imgH = canvas.height * imgW / canvas.width
 
-// 1페이지 흰색 배경
-pdf.setFillColor(255, 255, 255)
-pdf.rect(0, 0, pageW, pageH, 'F')
+    pdf.setFillColor(255, 255, 255)
+    pdf.rect(0, 0, pageW, pageH, 'F')
+    let heightLeft = imgH, position = 0
+    pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
+    heightLeft -= pageH
 
-let heightLeft = imgH, position = 0
-pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
-heightLeft -= pageH
+    while (heightLeft > 0) {
+      position -= pageH
+      pdf.addPage()
+      pdf.setFillColor(255, 255, 255)
+      pdf.rect(0, 0, pageW, pageH, 'F')
+      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
+      heightLeft -= pageH
+    }
 
-while (heightLeft > 0) {
-  position -= pageH
-  pdf.addPage()
-  // 추가 페이지도 흰색 배경
-  pdf.setFillColor(255, 255, 255)
-  pdf.rect(0, 0, pageW, pageH, 'F')
-  pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
-  heightLeft -= pageH
-}
-
-    // ① 내 기기에 PDF 다운로드 (기존 로직)
     const filename = `${studentName || '고객'}_안내확인서_${contractDate}.pdf`
     pdf.save(filename)
 
-    // ② Vercel Blob에 업로드 후 QR 모달 표시
     try {
       setUploading(true)
       const pdfBlob = pdf.output('blob')
@@ -306,8 +283,8 @@ while (heightLeft > 0) {
   const tdStyle: React.CSSProperties = { flex: 1, padding: '9px 12px' }
 
   return (
-<div style={{ maxWidth: 720, margin: '0 auto', padding: '16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#ffffff', minHeight: '100vh' }}>
-      {/* ✅ 업로드 로딩 오버레이 */}
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#EBF5FF', minHeight: '100vh' }}>
+
       {uploading && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
           <div style={{ width: 48, height: 48, border: '5px solid rgba(255,255,255,0.3)', borderTop: '5px solid #fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
@@ -316,45 +293,24 @@ while (heightLeft > 0) {
         </div>
       )}
 
-      {/* ✅ QR 모달 */}
       {qrModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.75)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: '#fff', borderRadius: 24, padding: '32px 28px', width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', textAlign: 'center' }}>
-
-            {/* 안내 문구 */}
             <div style={{ fontSize: 13, color: '#444', lineHeight: 1.7, marginBottom: 24, wordBreak: 'keep-all', background: '#f0f8ff', borderRadius: 10, padding: '14px 16px', border: '1px solid #b3d9ff' }}>
               📱 고객님, 스마트폰 카메라로 QR 코드를 스캔하시면<br />
               서명하신 문서를 즉시 다운로드 및<br />
               <strong>카카오톡 등으로 편리하게 소장</strong>하실 수 있습니다.
             </div>
-
-            {/* QR 코드 */}
             <div style={{ display: 'inline-block', padding: 16, background: '#fff', borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', marginBottom: 24 }}>
-              <QRCodeSVG
-                value={qrUrl}
-                size={220}
-                level="H"
-                includeMargin={false}
-              />
+              <QRCodeSVG value={qrUrl} size={220} level="H" includeMargin={false} />
             </div>
-
-            {/* URL 표시 */}
-            <div style={{ fontSize: 11, color: '#aaa', marginBottom: 24, wordBreak: 'break-all', lineHeight: 1.5 }}>
-              {qrUrl}
-            </div>
-
-            {/* 확인/닫기 버튼 */}
-            <button
-              onClick={closeQrAndReset}
-              style={{ width: '100%', padding: 16, background: 'linear-gradient(135deg, #1E90FF, #0066cc)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(30,144,255,0.35)' }}
-            >
-              ✓ 확인 완료 
+            <button onClick={closeQrAndReset} style={{ width: '100%', padding: 16, background: 'linear-gradient(135deg, #1E90FF, #0066cc)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(30,144,255,0.35)' }}>
+              ✓ 확인 완료
             </button>
           </div>
         </div>
       )}
 
-      {/* 서명 모달 */}
       {signModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.75)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 500, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
@@ -377,7 +333,6 @@ while (heightLeft > 0) {
 
       <div ref={formRef} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 8px 32px rgba(30,144,255,0.10)', overflow: 'hidden' }}>
 
-        {/* 탭 */}
         {!capturing && (
           <div style={{ display: 'flex', borderBottom: '2px solid #f0f0f0' }}>
             {CATEGORIES.map(c => (
@@ -389,14 +344,12 @@ while (heightLeft > 0) {
           </div>
         )}
 
-        {/* 로고 */}
         {current.logo_url && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 16px 0' }}>
             <img src={current.logo_url} alt="로고" style={{ height: 50, objectFit: 'contain' }} crossOrigin="anonymous" />
           </div>
         )}
 
-        {/* 헤더 */}
         <div style={{ background: 'linear-gradient(135deg, #1E90FF 0%, #0066cc 100%)', padding: '24px', marginTop: current.logo_url ? 12 : 0, boxShadow: '0 4px 16px rgba(30,144,255,0.3)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -412,7 +365,6 @@ while (heightLeft > 0) {
 
         <div style={{ padding: '20px 16px' }}>
 
-          {/* 고객 정보 테이블 */}
           <div style={{ border: '1.5px solid #e8ecf0', borderRadius: 10, overflow: 'hidden', marginBottom: 24 }}>
             <div style={{ display: 'flex', borderBottom: '1px solid #e8ecf0' }}>
               <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>학생명</span></div>
@@ -464,7 +416,6 @@ while (heightLeft > 0) {
             </div>
           </div>
 
-          {/* 안내사항 */}
           <div ref={noticeRef} style={{ position: 'relative' }}>
             <div style={{ borderBottom: '2.5px solid #1E90FF', marginBottom: 4 }}></div>
             {current.items.map((item, i) => (
@@ -478,7 +429,6 @@ while (heightLeft > 0) {
 
           <hr style={{ border: 'none', borderTop: '1.5px solid #eee', margin: '20px 0' }} />
 
-          {/* 확인 체크박스 */}
           <div style={{ background: 'linear-gradient(135deg, #f0f8ff, #e8f4ff)', border: '1.5px solid #b3d9ff', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
               <input type="checkbox" checked={checked} onChange={e => setChecked(e.target.checked)} style={{ marginTop: 2, width: 18, height: 18, flexShrink: 0, accentColor: '#1E90FF' }} />
@@ -486,7 +436,6 @@ while (heightLeft > 0) {
             </label>
           </div>
 
-          {/* 서명 테이블 */}
           <div style={{ border: '1.5px solid #e8ecf0', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
             <div style={{ display: 'flex', borderBottom: '1px solid #e8ecf0' }}>
               <div style={{ ...thStyle, flex: '0 0 80px' }}>
@@ -528,7 +477,6 @@ while (heightLeft > 0) {
             </div>
           </div>
 
-          {/* 저장 버튼 */}
           {!capturing && (
             <div style={{ display: 'flex', gap: 12 }}>
               <button onClick={savePDF} style={{ flex: 1, padding: 14, background: 'linear-gradient(135deg, #1E90FF, #0066cc)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(30,144,255,0.3)' }}>
