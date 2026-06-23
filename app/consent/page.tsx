@@ -296,7 +296,7 @@ export default function ConsentPage() {
       {qrModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.75)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: '#fff', borderRadius: 24, padding: '32px 28px', width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', textAlign: 'center' }}>
-            <div style={{ fontSize: 13, color: '#444', lineHeight: 1.7, marginBottom: 24, wordBreak: 'keep-all', background: '#f0f8ff', borderRadius: 10, padding: '14px 16px', border: '1px solid #b3d9ff' }}>
+            <div style={{ fontSize: 13, color: '#444', lineHeight: 1.7, marginBottom: 24, wordBreak: 'keep-all', background: '#ffffff', borderRadius: 10, padding: '14px 16px', border: '1px solid #b3d9ff' }}>
               📱 고객님, 스마트폰 카메라로 QR 코드를 스캔하시면<br />
               서명하신 문서를 즉시 다운로드 및<br />
               <strong>카카오톡 등으로 편리하게 소장</strong>하실 수 있습니다.
@@ -429,7 +429,7 @@ export default function ConsentPage() {
 
           <hr style={{ border: 'none', borderTop: '1.5px solid #eee', margin: '20px 0' }} />
 
-          <div style={{ background: 'linear-gradient(135deg, #ffffff, #e8f4ff)', border: '1.5px solid #b3d9ff', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+          <div style={{ background: 'linear-gradient(135deg, #ffffff, #ffffff)', border: '1.5px solid #b3d9ff', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
               <input type="checkbox" checked={checked} onChange={e => setChecked(e.target.checked)} style={{ marginTop: 2, width: 18, height: 18, flexShrink: 0, accentColor: '#1E90FF' }} />
               <span style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 500, wordBreak: 'keep-all', lineHeight: 1.6 }}>{current.confirm_text}</span>
