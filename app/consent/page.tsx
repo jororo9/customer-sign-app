@@ -241,15 +241,23 @@ async function savePDF() {
     if (!canvas) return
 
     const imgData = canvas.toDataURL('image/png')
-    const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
-    const pageW = 210, pageH = 297
-    const imgW = pageW
-    const imgH = canvas.height * imgW / canvas.width
-    let heightLeft = imgH, position = 0
-    pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
-    heightLeft -= pageH
+const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
+const pageW = 210, pageH = 297
+const imgW = pageW
+const imgH = canvas.height * imgW / canvas.width
+
+// 1페이지 흰색 배경
+pdf.setFillColor(255, 255, 255)
+pdf.rect(0, 0, pageW, pageH, 'F')
+
+let heightLeft = imgH, position = 0
+pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
+heightLeft -= pageH
+
 while (heightLeft > 0) {
-  position -= pageH; pdf.addPage()
+  position -= pageH
+  pdf.addPage()
+  // 추가 페이지도 흰색 배경
   pdf.setFillColor(255, 255, 255)
   pdf.rect(0, 0, pageW, pageH, 'F')
   pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
