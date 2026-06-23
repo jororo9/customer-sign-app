@@ -147,21 +147,36 @@ export default function ConsentPage() {
     return () => window.removeEventListener('resize', updateSize)
   }, [data, tab])
 
-  async function capture() {
-    if (!formRef.current) return null
-    setCapturing(true)
-    await document.fonts.ready
-    await new Promise(r => setTimeout(r, 1000))
-    const canvas = await html2canvas(formRef.current, {
-      scale: 1,
-      backgroundColor: '#ffffff',
-      useCORS: true,
-      logging: false,
-      allowTaint: true,
-    })
-    setCapturing(false)
-    return canvas
-  }
+async function capture() {
+  if (!formRef.current) return null
+  setCapturing(true)
+  await document.fonts.ready
+  await new Promise(r => setTimeout(r, 1000))
+  
+  const el = formRef.current
+  const prevBorderRadius = el.style.borderRadius
+  const prevBoxShadow = el.style.boxShadow
+  el.style.borderRadius = '0'
+  el.style.boxShadow = 'none'
+  
+  const canvas = await html2canvas(el, {
+    scale: 1,
+    backgroundColor: '#ffffff',
+    useCORS: true,
+    logging: false,
+    allowTaint: true,
+    x: 0,
+    y: 0,
+    scrollX: 0,
+    scrollY: -window.scrollY,
+  })
+  
+  el.style.borderRadius = prevBorderRadius
+  el.style.boxShadow = prevBoxShadow
+  
+  setCapturing(false)
+  return canvas
+}
 
   async function uploadToBlob(blob: Blob, filename: string): Promise<string> {
     const formData = new FormData()
