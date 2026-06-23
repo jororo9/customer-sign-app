@@ -160,7 +160,7 @@ async function capture() {
   el.style.boxShadow = 'none'
   
   const canvas = await html2canvas(el, {
-    scale: 1.5,
+    scale: 1.2,
     backgroundColor: '#ffffff',
     useCORS: true,
     logging: false,
