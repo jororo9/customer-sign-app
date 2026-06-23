@@ -154,15 +154,23 @@ async function capture() {
   setCapturing(true)
   await document.fonts.ready
   await new Promise(r => setTimeout(r, 1000))
+  
+  // 캡처 전 임시로 바깥 배경색 흰색으로 변경
+  const outerDiv = formRef.current.parentElement
+  const originalBg = outerDiv?.style.background || ''
+  if (outerDiv) outerDiv.style.background = '#ffffff'
+  
   const canvas = await html2canvas(formRef.current, {
     scale: 1, 
-    backgroundColor: '#ffffff',  // '#fff' → '#ffffff' 로 변경
+    backgroundColor: '#ffffff',
     useCORS: true, 
     logging: false, 
     allowTaint: true,
-    windowWidth: formRef.current.scrollWidth,
-    windowHeight: formRef.current.scrollHeight,
   })
+  
+  // 캡처 후 원래 배경색 복원
+  if (outerDiv) outerDiv.style.background = originalBg
+  
   setCapturing(false)
   return canvas
 }
