@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface NoticeItem { label: string; content: string }
 type CategoryData = {
@@ -45,6 +46,12 @@ export default function ConsentPage() {
   const [capturing, setCapturing] = useState(false)
   const [signModal, setSignModal] = useState(false)
   const [signImage, setSignImage] = useState<string | null>(null)
+
+  // ✅ QR 모달 관련 상태
+  const [qrModal, setQrModal] = useState(false)
+  const [qrUrl, setQrUrl] = useState('')
+  const [uploading, setUploading] = useState(false)
+
   const highlightRef = useRef<HTMLCanvasElement>(null)
   const noticeRef = useRef<HTMLDivElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
@@ -54,7 +61,8 @@ export default function ConsentPage() {
   useEffect(() => { loadAll() }, [])
 
   useEffect(() => {
-    if (signModal) {
+    // 서명 모달 또는 QR 모달 열릴 때 스크롤 막기
+    if (signModal || qrModal) {
       document.body.style.overflow = 'hidden'
       document.body.style.touchAction = 'none'
     } else {
@@ -65,7 +73,7 @@ export default function ConsentPage() {
       document.body.style.overflow = ''
       document.body.style.touchAction = ''
     }
-  }, [signModal])
+  }, [signModal, qrModal])
 
   async function loadAll() {
     const { data: rows } = await supabase.from('consent_notices').select('*')
@@ -153,18 +161,71 @@ export default function ConsentPage() {
     return canvas
   }
 
+  // ✅ Vercel Blob에 파일 업로드하고 URL 반환
+  async function uploadToBlob(blob: Blob, filename: string): Promise<string> {
+    const formData = new FormData()
+    formData.append('file', blob, filename)
+
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!res.ok) throw new Error('업로드 실패')
+    const json = await res.json()
+    return json.url // Vercel Blob이 반환한 다운로드 URL
+  }
+
+  // ✅ QR 모달 열기
+  function openQrModal(url: string) {
+    setQrUrl(url)
+    setQrModal(true)
+  }
+
+  // ✅ QR 모달 닫기 + 화면 리셋
+  function closeQrAndReset() {
+    setQrModal(false)
+    setQrUrl('')
+    setStudentName('')
+    setStudentId('')
+    setProduct('')
+    setContractPeriod('')
+    setCustomerName('')
+    setContractDate(new Date().toISOString().split('T')[0])
+    setChecked(false)
+    setSignImage(null)
+  }
+
   async function saveImage() {
     const canvas = await capture()
     if (!canvas) return
+
+    // ① 내 기기에 PNG 다운로드 (기존 로직)
     const link = document.createElement('a')
     link.download = `${studentName || '고객'}_안내확인서_${contractDate}.png`
     link.href = canvas.toDataURL('image/png')
     link.click()
+
+    // ② Vercel Blob에 업로드 후 QR 모달 표시
+    try {
+      setUploading(true)
+      canvas.toBlob(async (blob) => {
+        if (!blob) return
+        const filename = `${studentName || '고객'}_안내확인서_${contractDate}.png`
+        const url = await uploadToBlob(blob, filename)
+        setUploading(false)
+        openQrModal(url)
+      }, 'image/png')
+    } catch (err) {
+      setUploading(false)
+      alert('QR 생성을 위한 업로드에 실패했습니다.')
+    }
   }
 
   async function savePDF() {
     const canvas = await capture()
     if (!canvas) return
+
     const imgData = canvas.toDataURL('image/png')
     const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
     const pageW = 210, pageH = 297
@@ -178,7 +239,22 @@ export default function ConsentPage() {
       pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
       heightLeft -= pageH
     }
-    pdf.save(`${studentName || '고객'}_안내확인서_${contractDate}.pdf`)
+
+    // ① 내 기기에 PDF 다운로드 (기존 로직)
+    const filename = `${studentName || '고객'}_안내확인서_${contractDate}.pdf`
+    pdf.save(filename)
+
+    // ② Vercel Blob에 업로드 후 QR 모달 표시
+    try {
+      setUploading(true)
+      const pdfBlob = pdf.output('blob')
+      const url = await uploadToBlob(pdfBlob, filename)
+      setUploading(false)
+      openQrModal(url)
+    } catch (err) {
+      setUploading(false)
+      alert('QR 생성을 위한 업로드에 실패했습니다.')
+    }
   }
 
   const current = data[tab]
@@ -200,6 +276,53 @@ export default function ConsentPage() {
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#EBF5FF', minHeight: '100vh' }}>
+
+      {/* ✅ 업로드 로딩 오버레이 */}
+      {uploading && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+          <div style={{ width: 48, height: 48, border: '5px solid rgba(255,255,255,0.3)', borderTop: '5px solid #fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>QR 코드 생성 중...</div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+
+      {/* ✅ QR 모달 */}
+      {qrModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.75)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 24, padding: '32px 28px', width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', textAlign: 'center' }}>
+
+            {/* 안내 문구 */}
+            <div style={{ fontSize: 13, color: '#444', lineHeight: 1.7, marginBottom: 24, wordBreak: 'keep-all', background: '#f0f8ff', borderRadius: 10, padding: '14px 16px', border: '1px solid #b3d9ff' }}>
+              📱 고객님, 스마트폰 카메라로 QR 코드를 스캔하시면<br />
+              서명하신 문서를 즉시 다운로드 및<br />
+              <strong>카카오톡 등으로 편리하게 소장</strong>하실 수 있습니다.
+            </div>
+
+            {/* QR 코드 */}
+            <div style={{ display: 'inline-block', padding: 16, background: '#fff', borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', marginBottom: 24 }}>
+              <QRCodeSVG
+                value={qrUrl}
+                size={220}
+                level="H"
+                includeMargin={false}
+              />
+            </div>
+
+            {/* URL 표시 */}
+            <div style={{ fontSize: 11, color: '#aaa', marginBottom: 24, wordBreak: 'break-all', lineHeight: 1.5 }}>
+              {qrUrl}
+            </div>
+
+            {/* 확인/닫기 버튼 */}
+            <button
+              onClick={closeQrAndReset}
+              style={{ width: '100%', padding: 16, background: 'linear-gradient(135deg, #1E90FF, #0066cc)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(30,144,255,0.35)' }}
+            >
+              ✓ 확인 완료 · 다음 상담으로
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 서명 모달 */}
       {signModal && (
