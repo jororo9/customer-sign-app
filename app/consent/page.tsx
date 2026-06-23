@@ -197,6 +197,10 @@ export default function ConsentPage() {
   }
 
   async function saveImage() {
+     if (!checked) {
+    alert('안내사항을 체크해주세요!')
+    return
+  }
     const canvas = await capture()
     if (!canvas) return
 
@@ -222,7 +226,11 @@ export default function ConsentPage() {
     }
   }
 
-  async function savePDF() {
+async function savePDF() {
+  if (!checked) {
+    alert('안내사항을 체크해주세요!')
+    return
+  }
     const canvas = await capture()
     if (!canvas) return
 
@@ -318,7 +326,7 @@ export default function ConsentPage() {
               onClick={closeQrAndReset}
               style={{ width: '100%', padding: 16, background: 'linear-gradient(135deg, #1E90FF, #0066cc)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(30,144,255,0.35)' }}
             >
-              ✓ 확인 완료 · 다음 상담으로
+              ✓ 확인 완료 
             </button>
           </div>
         </div>
