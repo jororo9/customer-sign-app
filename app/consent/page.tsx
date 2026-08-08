@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface NoticeItem { label: string; content: string }
 type CategoryData = {
@@ -45,6 +46,11 @@ export default function ConsentPage() {
   const [capturing, setCapturing] = useState(false)
   const [signModal, setSignModal] = useState(false)
   const [signImage, setSignImage] = useState<string | null>(null)
+
+  const [qrModal, setQrModal] = useState(false)
+  const [qrUrl, setQrUrl] = useState('')
+  const [uploading, setUploading] = useState(false)
+
   const highlightRef = useRef<HTMLCanvasElement>(null)
   const noticeRef = useRef<HTMLDivElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
@@ -54,7 +60,7 @@ export default function ConsentPage() {
   useEffect(() => { loadAll() }, [])
 
   useEffect(() => {
-    if (signModal) {
+    if (signModal || qrModal) {
       document.body.style.overflow = 'hidden'
       document.body.style.touchAction = 'none'
     } else {
@@ -65,7 +71,7 @@ export default function ConsentPage() {
       document.body.style.overflow = ''
       document.body.style.touchAction = ''
     }
-  }, [signModal])
+  }, [signModal, qrModal])
 
   async function loadAll() {
     const { data: rows } = await supabase.from('consent_notices').select('*')
@@ -141,44 +147,137 @@ export default function ConsentPage() {
     return () => window.removeEventListener('resize', updateSize)
   }, [data, tab])
 
-  async function capture() {
-    if (!formRef.current) return null
-    setCapturing(true)
-    await document.fonts.ready
-    await new Promise(r => setTimeout(r, 1000))
-    const canvas = await html2canvas(formRef.current, {
-      scale: 2, backgroundColor: '#fff', useCORS: true, logging: false, allowTaint: true,
+async function capture() {
+  if (!formRef.current) return null
+  setCapturing(true)
+  await document.fonts.ready
+  await new Promise(r => setTimeout(r, 1000))
+  
+  const el = formRef.current
+  const prevBorderRadius = el.style.borderRadius
+  const prevBoxShadow = el.style.boxShadow
+  el.style.borderRadius = '0'
+  el.style.boxShadow = 'none'
+  
+  const canvas = await html2canvas(el, {
+    scale: 1.2,
+    backgroundColor: '#ffffff',
+    useCORS: true,
+    logging: false,
+    allowTaint: true,
+    x: 0,
+    y: 0,
+    scrollX: 0,
+    scrollY: -window.scrollY,
+  })
+  
+  el.style.borderRadius = prevBorderRadius
+  el.style.boxShadow = prevBoxShadow
+  
+  setCapturing(false)
+  return canvas
+}
+
+  async function uploadToBlob(blob: Blob, filename: string): Promise<string> {
+    const formData = new FormData()
+    formData.append('file', blob, filename)
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
     })
-    setCapturing(false)
-    return canvas
+    if (!res.ok) throw new Error('업로드 실패')
+    const json = await res.json()
+    return json.url
+  }
+
+  function openQrModal(url: string) {
+    setQrUrl(url)
+    setQrModal(true)
+  }
+
+  function closeQrAndReset() {
+    setQrModal(false)
+    setQrUrl('')
+    setStudentName('')
+    setStudentId('')
+    setProduct('')
+    setContractPeriod('')
+    setCustomerName('')
+    setContractDate(new Date().toISOString().split('T')[0])
+    setChecked(false)
+    setSignImage(null)
   }
 
   async function saveImage() {
+    if (!checked) {
+      alert('안내사항을 체크해주세요!')
+      return
+    }
     const canvas = await capture()
     if (!canvas) return
+
     const link = document.createElement('a')
     link.download = `${studentName || '고객'}_안내확인서_${contractDate}.png`
     link.href = canvas.toDataURL('image/png')
     link.click()
+
+    try {
+      setUploading(true)
+      canvas.toBlob(async (blob) => {
+        if (!blob) return
+        const filename = `${studentName || '고객'}_안내확인서_${contractDate}.png`
+        const url = await uploadToBlob(blob, filename)
+        setUploading(false)
+        openQrModal(url)
+      }, 'image/png')
+    } catch (err) {
+      setUploading(false)
+      alert('QR 생성을 위한 업로드에 실패했습니다.')
+    }
   }
 
   async function savePDF() {
+    if (!checked) {
+      alert('안내사항을 체크해주세요!')
+      return
+    }
     const canvas = await capture()
     if (!canvas) return
+
     const imgData = canvas.toDataURL('image/png')
     const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
     const pageW = 210, pageH = 297
     const imgW = pageW
     const imgH = canvas.height * imgW / canvas.width
+
+    pdf.setFillColor(255, 255, 255)
+    pdf.rect(0, 0, pageW, pageH, 'F')
     let heightLeft = imgH, position = 0
     pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
     heightLeft -= pageH
+
     while (heightLeft > 0) {
-      position -= pageH; pdf.addPage()
+      position -= pageH
+      pdf.addPage()
+      pdf.setFillColor(255, 255, 255)
+      pdf.rect(0, 0, pageW, pageH, 'F')
       pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
       heightLeft -= pageH
     }
-    pdf.save(`${studentName || '고객'}_안내확인서_${contractDate}.pdf`)
+
+    const filename = `${studentName || '고객'}_안내확인서_${contractDate}.pdf`
+    pdf.save(filename)
+
+    try {
+      setUploading(true)
+      const pdfBlob = pdf.output('blob')
+      const url = await uploadToBlob(pdfBlob, filename)
+      setUploading(false)
+      openQrModal(url)
+    } catch (err) {
+      setUploading(false)
+      alert('QR 생성을 위한 업로드에 실패했습니다.')
+    }
   }
 
   const current = data[tab]
@@ -201,7 +300,32 @@ export default function ConsentPage() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#EBF5FF', minHeight: '100vh' }}>
 
-      {/* 서명 모달 */}
+      {uploading && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+          <div style={{ width: 48, height: 48, border: '5px solid rgba(255,255,255,0.3)', borderTop: '5px solid #fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>QR 코드 생성 중...</div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+
+      {qrModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.75)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 24, padding: '32px 28px', width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', textAlign: 'center' }}>
+            <div style={{ fontSize: 13, color: '#444', lineHeight: 1.7, marginBottom: 24, wordBreak: 'keep-all', background: '#ffffff', borderRadius: 10, padding: '14px 16px', border: '1px solid #b3d9ff' }}>
+              📱 고객님, 스마트폰 카메라로 QR 코드를 스캔하시면<br />
+              서명하신 문서를 즉시 다운로드 및<br />
+              <strong>카카오톡 등으로 편리하게 소장</strong>하실 수 있습니다.
+            </div>
+            <div style={{ display: 'inline-block', padding: 16, background: '#fff', borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', marginBottom: 24 }}>
+              <QRCodeSVG value={qrUrl} size={220} level="H" includeMargin={false} />
+            </div>
+            <button onClick={closeQrAndReset} style={{ width: '100%', padding: 16, background: 'linear-gradient(135deg, #1E90FF, #0066cc)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(30,144,255,0.35)' }}>
+              ✓ 확인 완료
+            </button>
+          </div>
+        </div>
+      )}
+
       {signModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.75)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 500, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
@@ -224,7 +348,6 @@ export default function ConsentPage() {
 
       <div ref={formRef} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 8px 32px rgba(30,144,255,0.10)', overflow: 'hidden' }}>
 
-        {/* 탭 */}
         {!capturing && (
           <div style={{ display: 'flex', borderBottom: '2px solid #f0f0f0' }}>
             {CATEGORIES.map(c => (
@@ -236,14 +359,12 @@ export default function ConsentPage() {
           </div>
         )}
 
-        {/* 로고 */}
         {current.logo_url && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 16px 0' }}>
             <img src={current.logo_url} alt="로고" style={{ height: 50, objectFit: 'contain' }} crossOrigin="anonymous" />
           </div>
         )}
 
-        {/* 헤더 */}
         <div style={{ background: 'linear-gradient(135deg, #1E90FF 0%, #0066cc 100%)', padding: '24px', marginTop: current.logo_url ? 12 : 0, boxShadow: '0 4px 16px rgba(30,144,255,0.3)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -259,7 +380,6 @@ export default function ConsentPage() {
 
         <div style={{ padding: '20px 16px' }}>
 
-          {/* 고객 정보 테이블 */}
           <div style={{ border: '1.5px solid #e8ecf0', borderRadius: 10, overflow: 'hidden', marginBottom: 24 }}>
             <div style={{ display: 'flex', borderBottom: '1px solid #e8ecf0' }}>
               <div style={thStyle}><span style={{ fontSize: 12, fontWeight: 700, color: '#555' }}>학생명</span></div>
@@ -311,7 +431,6 @@ export default function ConsentPage() {
             </div>
           </div>
 
-          {/* 안내사항 */}
           <div ref={noticeRef} style={{ position: 'relative' }}>
             <div style={{ borderBottom: '2.5px solid #1E90FF', marginBottom: 4 }}></div>
             {current.items.map((item, i) => (
@@ -325,15 +444,13 @@ export default function ConsentPage() {
 
           <hr style={{ border: 'none', borderTop: '1.5px solid #eee', margin: '20px 0' }} />
 
-          {/* 확인 체크박스 */}
-          <div style={{ background: 'linear-gradient(135deg, #f0f8ff, #e8f4ff)', border: '1.5px solid #b3d9ff', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+          <div style={{ background: 'linear-gradient(135deg, #ffffff, #ffffff)', border: '1.5px solid #b3d9ff', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
               <input type="checkbox" checked={checked} onChange={e => setChecked(e.target.checked)} style={{ marginTop: 2, width: 18, height: 18, flexShrink: 0, accentColor: '#1E90FF' }} />
               <span style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 500, wordBreak: 'keep-all', lineHeight: 1.6 }}>{current.confirm_text}</span>
             </label>
           </div>
 
-          {/* 서명 테이블 */}
           <div style={{ border: '1.5px solid #e8ecf0', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
             <div style={{ display: 'flex', borderBottom: '1px solid #e8ecf0' }}>
               <div style={{ ...thStyle, flex: '0 0 80px' }}>
@@ -364,7 +481,7 @@ export default function ConsentPage() {
                     )}
                   </div>
                 ) : (
-                  <div onClick={() => setSignModal(true)} style={{ border: '2px dashed #1E90FF', borderRadius: 8, background: '#f0f8ff', minHeight: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 6 }}>
+                  <div onClick={() => setSignModal(true)} style={{ border: '2px dashed #1E90FF', borderRadius: 8, background: '#ffffff', minHeight: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 6 }}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E90FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                     </svg>
@@ -375,17 +492,17 @@ export default function ConsentPage() {
             </div>
           </div>
 
-          {/* 저장 버튼 */}
-          {!capturing && (
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={savePDF} style={{ flex: 1, padding: 14, background: 'linear-gradient(135deg, #1E90FF, #0066cc)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(30,144,255,0.3)' }}>
-                📄 PDF 저장
-              </button>
-              <button onClick={saveImage} style={{ flex: 1, padding: 14, background: '#fff', color: '#1E90FF', border: '1.5px solid #1E90FF', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>
-                🖼 이미지 저장
-              </button>
-            </div>
-          )}
+{/* 저장 버튼 */}
+{!capturing && (
+  <div style={{ display: 'flex', gap: 12 }}>
+    <button onClick={savePDF} style={{ flex: 1, padding: 14, background: '#fff', color: '#1E90FF', border: '1.5px solid #1E90FF', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>
+      📄 PDF 저장
+    </button>
+    <button onClick={saveImage} style={{ flex: 1, padding: 14, background: 'linear-gradient(135deg, #1E90FF, #0066cc)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(30,144,255,0.3)' }}>
+      🖼 이미지 저장
+    </button>
+  </div>
+)}
 
         </div>
       </div>
