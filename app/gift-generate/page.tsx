@@ -9,6 +9,7 @@ interface PeriodEntry { code: string; period: string }
 
 type GiftSettings = {
   template_image_url: string
+  bottom_image_url: string
   brand_name: string
   product_name: string
   amount_text: string
@@ -21,6 +22,7 @@ type GiftSettings = {
 
 const emptyGift: GiftSettings = {
   template_image_url: '',
+  bottom_image_url: '',
   brand_name: '',
   product_name: '',
   amount_text: '',
@@ -65,6 +67,7 @@ export default function GiftGeneratePage() {
       .filter((p: PeriodEntry) => p.code.trim() || p.period.trim())
     const g: GiftSettings = {
       template_image_url: row.template_image_url || '',
+      bottom_image_url: row.bottom_image_url || '',
       brand_name: row.brand_name || '',
       product_name: row.product_name || '',
       amount_text: row.amount_text || '',
@@ -118,7 +121,7 @@ export default function GiftGeneratePage() {
     await new Promise(r => setTimeout(r, 300))
 
     const canvas = await html2canvas(cardRef.current, {
-      scale: 3, backgroundColor: gift.background_color || '#ffffff', useCORS: true, logging: false, allowTaint: true,
+      scale: 3, backgroundColor: '#ffffff', useCORS: true, logging: false, allowTaint: true,
     })
     setCapturing(false)
 
@@ -151,7 +154,7 @@ export default function GiftGeneratePage() {
             <input
               value={couponNumber}
               onChange={e => setCouponNumber(sanitizeCouponNumber(e.target.value))}
-              placeholder="예: A4652875622328681"
+              placeholder="예: M59D5A525F9462606"
               style={{ ...inputStyle, fontFamily: 'monospace' }}
             />
           </div>
@@ -208,31 +211,43 @@ export default function GiftGeneratePage() {
 
         {/* 미리보기 영역 */}
         <div style={{ flex: '1 1 300px', display: 'flex', justifyContent: 'center' }}>
-          <div ref={cardRef} style={{ width: 320, background: gift.background_color || '#ffffff', borderRadius: 20, overflow: 'hidden', padding: '4px 0' }}>
+          <div ref={cardRef} style={{ width: 320, borderRadius: 20, overflow: 'hidden', position: 'relative', background: gift.background_color || '#FFF3D6' }}>
 
-            {/* 상단 템플릿 이미지 */}
-            <div style={{ padding: 20, display: 'flex', justifyContent: 'center' }}>
+            {/* 상단 템플릿 이미지 (컬러 배경 영역) */}
+            <div style={{ padding: '24px 20px 34px', display: 'flex', justifyContent: 'center' }}>
               {gift.template_image_url ? (
                 <img src={gift.template_image_url} crossOrigin="anonymous" alt="상품권" style={{ width: 220, height: 220, objectFit: 'contain' }} />
               ) : (
-                <div style={{ width: 220, height: 220, borderRadius: '50%', border: '2px dashed #d8c9a8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a89774', fontSize: 13, textAlign: 'center', padding: 16 }}>
+                <div style={{ width: 220, height: 220, borderRadius: '50%', border: '2px dashed rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(0,0,0,0.4)', fontSize: 13, textAlign: 'center', padding: 16 }}>
                   어드민에서<br />상단 이미지를<br />등록해주세요
                 </div>
               )}
             </div>
 
-            {/* 하단 정보 카드 (흰색 유지, 상단 배경색과 대비) */}
-            <div style={{ border: '1px solid #eee', borderRadius: 12, background: '#fff', margin: '0 16px 20px', overflow: 'hidden' }}>
-              <div style={{ padding: '14px 16px 6px' }}>
+            {/* 상단/하단 경계 - 은은한 점선 절취선 */}
+            <div style={{ position: 'relative', height: 0 }}>
+              <div style={{ position: 'absolute', left: 24, right: 24, top: 0, borderTop: '1.5px dashed rgba(0,0,0,0.18)' }} />
+            </div>
+
+            {/* 하단 정보 영역 (흰색) */}
+            <div style={{ background: '#fff' }}>
+              <div style={{ padding: '16px 16px 6px' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#ff9800' }}>{gift.brand_name || '브랜드명'}</span>
               </div>
-              <div style={{ padding: '0 16px 14px', fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>
+              <div style={{ padding: '0 16px 16px', fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>
                 {gift.product_name || '상품명'} {gift.amount_text}
               </div>
 
-              <div style={{ borderTop: '1px dashed #ddd', padding: '16px', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'monospace', fontSize: 16, fontWeight: 700, letterSpacing: 1, color: '#1a1a2e', wordBreak: 'break-all' }}>
-                  {couponNumber || 'A0000000000000000'}
+              {/* 쿠폰번호 박스 */}
+              <div style={{ padding: '0 16px 18px', display: 'flex', justifyContent: 'center' }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  minHeight: 46, padding: '0 18px', background: '#f7f7f8',
+                  border: '1px solid #e6e6e8', borderRadius: 10,
+                  fontFamily: 'monospace', fontSize: 16, fontWeight: 700, letterSpacing: 1, lineHeight: 1,
+                  color: '#1a1a2e', wordBreak: 'break-all', maxWidth: '100%', boxSizing: 'border-box',
+                }}>
+                  {couponNumber || 'M59D5A525F9462606'}
                 </div>
               </div>
 
@@ -257,6 +272,12 @@ export default function GiftGeneratePage() {
               {usageMethod && (
                 <div style={{ padding: '12px 16px', fontSize: 11, color: '#888', lineHeight: 1.6, whiteSpace: 'pre-wrap', borderTop: '1px solid #eee' }}>
                   {usageMethod}
+                </div>
+              )}
+
+              {gift.bottom_image_url && (
+                <div style={{ padding: '16px', display: 'flex', justifyContent: 'center', borderTop: '1px solid #eee' }}>
+                  <img src={gift.bottom_image_url} crossOrigin="anonymous" alt="BI" style={{ maxHeight: 40, objectFit: 'contain' }} />
                 </div>
               )}
             </div>
