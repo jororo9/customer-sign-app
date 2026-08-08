@@ -431,7 +431,7 @@ function GiftSettingsPanel() {
       <div style={{ background: 'linear-gradient(135deg, #ff9800, #f57c00)', padding: '28px 36px' }}>
         <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', textAlign: 'center' }}>🎁 사은품(기프티콘) 설정</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 6, textAlign: 'center' }}>
-          여기서 등록한 내용은 영업사원이 사용하는 '기프티콘 생성 페이지'에서 자동으로 불러와집니다
+          여기서 등록한 내용은 매니저가 사용하는 '기프티콘 생성 페이지'에서 자동으로 불러와집니다
         </div>
       </div>
 
