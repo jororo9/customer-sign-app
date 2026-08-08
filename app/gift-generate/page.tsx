@@ -33,6 +33,8 @@ const emptyGift: GiftSettings = {
   background_color: '#FFF3D6',
 }
 
+const MAX_ISSUE_COUNT = 5 // 모바일 기반이라 동시 발행은 최대 5건까지만 허용
+
 // 17자리, 띄어쓰기 없이 영문/숫자만
 function sanitizeCouponNumber(raw: string) {
   return raw.replace(/[^0-9a-zA-Z]/g, '').slice(0, 17)
@@ -44,18 +46,21 @@ export default function GiftGeneratePage() {
   const [loadError, setLoadError] = useState(false)
 
   // ---- 입력값 (임시 상태 / draft) ----
-  const [couponNumberDraft, setCouponNumberDraft] = useState('')
+  const [issueCountDraft, setIssueCountDraft] = useState('1')
+  const [couponNumbersDraft, setCouponNumbersDraft] = useState<string[]>([''])
   const [selectedPeriodIdxDraft, setSelectedPeriodIdxDraft] = useState('')
   const [usageMethodDraft, setUsageMethodDraft] = useState('')
   const [exchangePlaceDraft, setExchangePlaceDraft] = useState('')
   const [extraItemsDraft, setExtraItemsDraft] = useState<NoticeItem[]>([])
 
   // ---- 미리보기(카드)에 실제로 반영된 값 ----
-  const [couponNumber, setCouponNumber] = useState('')
+  const [couponNumbers, setCouponNumbers] = useState<string[]>([''])
   const [selectedPeriodIdx, setSelectedPeriodIdx] = useState('')
   const [usageMethod, setUsageMethod] = useState('')
   const [exchangePlace, setExchangePlace] = useState('')
   const [extraItems, setExtraItems] = useState<NoticeItem[]>([])
+  const [previewIndex, setPreviewIndex] = useState(0) // 지금 카드에 보여지는 쿠폰 순번 (자유롭게 이동 가능)
+  const [savedFlags, setSavedFlags] = useState<boolean[]>([false])
 
   const [reflected, setReflected] = useState(false) // "이미지에 반영하기" 눌렀는지 여부
   const [capturing, setCapturing] = useState(false)
@@ -106,25 +111,51 @@ export default function GiftGeneratePage() {
   }
 
   // draft 값이 바뀌면 "반영 완료" 상태를 해제 (재확인 유도)
-  function onCouponChange(v: string) { setCouponNumberDraft(sanitizeCouponNumber(v)); setReflected(false) }
+  function onIssueCountChange(v: string) {
+    const raw = Number(v)
+    const n = Number.isFinite(raw) ? Math.max(1, Math.min(MAX_ISSUE_COUNT, Math.floor(raw))) : 1
+    setIssueCountDraft(String(n))
+    setCouponNumbersDraft(prev => {
+      const next = [...prev]
+      if (n > next.length) {
+        while (next.length < n) next.push('')
+      } else {
+        next.length = n
+      }
+      return next
+    })
+    setReflected(false)
+  }
+  function onCouponChange(i: number, v: string) {
+    setCouponNumbersDraft(prev => {
+      const next = [...prev]
+      next[i] = sanitizeCouponNumber(v)
+      return next
+    })
+    setReflected(false)
+  }
   function onPeriodChange(v: string) { setSelectedPeriodIdxDraft(v); setReflected(false) }
   function onExchangeChange(v: string) { setExchangePlaceDraft(v); setReflected(false) }
   function onUsageChange(v: string) { setUsageMethodDraft(v); setReflected(false) }
 
   function reflectToImage() {
-    if (!couponNumberDraft.trim()) {
-      alert('쿠폰번호를 입력해주세요.')
+    const emptyIdx = couponNumbersDraft.findIndex(cn => !cn.trim())
+    if (emptyIdx !== -1) {
+      alert(`쿠폰번호 ${emptyIdx + 1}번을 입력해주세요.`)
       return
     }
-    if (couponNumberDraft.length !== 17) {
-      alert('쿠폰번호는 17자리입니다. 확인해주세요.')
+    const invalidIdx = couponNumbersDraft.findIndex(cn => cn.length !== 17)
+    if (invalidIdx !== -1) {
+      alert(`쿠폰번호 ${invalidIdx + 1}번이 17자리가 아닙니다. 확인해주세요.`)
       return
     }
-    setCouponNumber(couponNumberDraft)
+    setCouponNumbers([...couponNumbersDraft])
     setSelectedPeriodIdx(selectedPeriodIdxDraft)
     setUsageMethod(usageMethodDraft)
     setExchangePlace(exchangePlaceDraft)
     setExtraItems(extraItemsDraft.map(it => ({ ...it })))
+    setPreviewIndex(0)
+    setSavedFlags(new Array(couponNumbersDraft.length).fill(false))
     setReflected(true)
   }
 
@@ -133,33 +164,62 @@ export default function GiftGeneratePage() {
       ? gift.period_options[Number(selectedPeriodIdx)]
       : null
 
-  async function generateImage() {
-    if (!reflected) {
-      alert('먼저 "이미지에 반영하기" 버튼을 눌러 미리보기에 반영해주세요.')
-      return
-    }
+  async function waitForCardImages() {
     if (!cardRef.current) return
-
-    setCapturing(true)
-    await document.fonts.ready
-    // 템플릿 이미지가 있다면 로딩이 끝날 때까지 대기
     const imgs = cardRef.current.querySelectorAll('img')
     await Promise.all(Array.from(imgs).map(img => {
       if (img.complete) return Promise.resolve()
       return new Promise(res => { img.onload = res; img.onerror = res })
     }))
-    await new Promise(r => setTimeout(r, 300))
+  }
+
+  // 지금 미리보기에 떠 있는 쿠폰(previewIndex)을 그 자리에서 저장
+  async function saveCurrentImage() {
+    if (!reflected || !cardRef.current) return
+
+    setCapturing(true)
+    await document.fonts.ready
+    await waitForCardImages()
+    await new Promise(r => setTimeout(r, 150))
 
     const canvas = await html2canvas(cardRef.current, {
       scale: 3, backgroundColor: '#ffffff', useCORS: true, logging: false, allowTaint: true,
     })
-    setCapturing(false)
 
     const link = document.createElement('a')
-    link.download = `기프티콘_${couponNumber || Date.now()}.jpg`
+    link.download = `기프티콘_${couponNumbers[previewIndex] || Date.now()}.jpg`
     link.href = canvas.toDataURL('image/jpeg', 0.95)
     link.click()
+
+    setCapturing(false)
+    setSavedFlags(prev => {
+      const next = [...prev]
+      next[previewIndex] = true
+      return next
+    })
   }
+
+  function resetGeneration() {
+    setIssueCountDraft('1')
+    setCouponNumbersDraft([''])
+    setSelectedPeriodIdxDraft(gift.period_options.length > 0 ? '0' : '')
+    setUsageMethodDraft(gift.usage_method)
+    setExchangePlaceDraft(gift.exchange_place)
+    setExtraItemsDraft(gift.extra_items.map((it: NoticeItem) => ({ ...it })))
+
+    setCouponNumbers([''])
+    setSelectedPeriodIdx('')
+    setUsageMethod('')
+    setExchangePlace('')
+    setExtraItems([])
+    setPreviewIndex(0)
+    setSavedFlags([false])
+    setReflected(false)
+  }
+
+  const isMulti = couponNumbers.length > 1
+  const allSaved = reflected && savedFlags.length > 0 && savedFlags.every(Boolean)
+  const savedCount = savedFlags.filter(Boolean).length
 
   const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 6, display: 'block' }
   const inputStyle: React.CSSProperties = {
@@ -167,6 +227,10 @@ export default function GiftGeneratePage() {
     outline: 'none', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxSizing: 'border-box',
   }
   const fieldBox: React.CSSProperties = { marginBottom: 16 }
+  const navBtnStyle: React.CSSProperties = {
+    width: 32, height: 32, borderRadius: '50%', border: '1.5px solid #ddd', background: '#fff',
+    fontSize: 16, color: '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  }
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#FFF7EC', minHeight: '100vh' }}>
@@ -174,7 +238,7 @@ export default function GiftGeneratePage() {
       <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a2e', marginBottom: 4 }}>
         🎁 모바일 기프티콘 이미지 생성
       </h1>
-      <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>정보를 입력한 뒤 [이미지에 반영하기]로 미리보기를 확인하고, 이미지를 생성해 고객에게 전달하세요.</p>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>정보를 입력한 뒤 [이미지에 반영하기]로 미리보기를 확인하고, 각 쿠폰을 화살표로 넘겨가며 저장하세요.</p>
 
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
 
@@ -197,14 +261,35 @@ export default function GiftGeneratePage() {
           {loaded && (
             <>
               <div style={fieldBox}>
-                <label style={labelStyle}>쿠폰번호 (17자리)</label>
+                <label style={labelStyle}>쿠폰 발행 건수 (최대 {MAX_ISSUE_COUNT}건)</label>
                 <input
-                  value={couponNumberDraft}
-                  onChange={e => onCouponChange(e.target.value)}
-                  placeholder="예: M59D5A525F9462606"
-                  style={{ ...inputStyle, fontFamily: 'monospace' }}
+                  type="number"
+                  min={1}
+                  max={MAX_ISSUE_COUNT}
+                  value={issueCountDraft}
+                  onChange={e => onIssueCountChange(e.target.value)}
+                  style={inputStyle}
                 />
+                {Number(issueCountDraft) > 1 && (
+                  <div style={{ marginTop: 6, fontSize: 11, color: '#ff9800', lineHeight: 1.5 }}>
+                    ⚠ 여러 장을 동시에 생성하면 쿠폰번호를 제외한 등록기간·교환처·사용방법 등 모든 내용이 동일하게 적용됩니다.
+                  </div>
+                )}
               </div>
+
+              {couponNumbersDraft.map((cn, i) => (
+                <div key={i} style={fieldBox}>
+                  <label style={labelStyle}>
+                    쿠폰번호{couponNumbersDraft.length > 1 ? ` ${i + 1}` : ''} (17자리)
+                  </label>
+                  <input
+                    value={cn}
+                    onChange={e => onCouponChange(i, e.target.value)}
+                    placeholder="예: M59D5A525F9462606"
+                    style={{ ...inputStyle, fontFamily: 'monospace' }}
+                  />
+                </div>
+              ))}
 
               <div style={fieldBox}>
                 <label style={labelStyle}>등록기간</label>
@@ -236,6 +321,12 @@ export default function GiftGeneratePage() {
                 </div>
               ))}
 
+              {Number(issueCountDraft) > 1 && (
+                <div style={{ marginBottom: 16, padding: '10px 12px', background: '#fff7ec', border: '1px solid #ffe0b3', borderRadius: 8, fontSize: 11, color: '#c77700', lineHeight: 1.6 }}>
+                  ※ 쿠폰 동시 생성 시, 쿠폰번호를 제외한 등록기간 · 교환처 · 사용방법 등 모든 내용은 동일하게 생성되니 유의해주세요.
+                </div>
+              )}
+
               <button
                 onClick={reflectToImage}
                 style={{ width: '100%', padding: 12, background: '#fff', border: '1.5px solid #ff9800', color: '#ff9800', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', marginTop: 4 }}
@@ -245,24 +336,16 @@ export default function GiftGeneratePage() {
 
               {reflected && (
                 <div style={{ marginTop: 10, fontSize: 12, color: '#2e9c4b', fontWeight: 700, textAlign: 'center' }}>
-                  ✓ 반영 완료 — 미리보기를 확인하고 이미지 생성 버튼을 눌러주세요
+                  ✓ 반영 완료 — 아래 미리보기에서 화살표로 넘겨가며 저장해주세요
                 </div>
-              )}
-
-              {reflected && (
-                <button
-                  onClick={generateImage}
-                  style={{ width: '100%', padding: 14, background: 'linear-gradient(135deg, #ff9800, #f57c00)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', boxShadow: '0 4px 12px rgba(255,152,0,0.3)', marginTop: 12 }}
-                >
-                  {capturing ? '생성 중...' : '🖼 이미지 생성하기 (JPG 저장)'}
-                </button>
               )}
             </>
           )}
         </div>
 
         {/* 미리보기 영역 */}
-        <div style={{ flex: '1 1 300px', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
           <div ref={cardRef} style={{ width: 320, borderRadius: 20, overflow: 'hidden', position: 'relative', background: gift.background_color || '#FFF3D6' }}>
 
             {/* 상단 템플릿 이미지 (컬러 배경 영역) - 카드 너비에 꽉 차는 사각형 */}
@@ -299,7 +382,7 @@ export default function GiftGeneratePage() {
                 {gift.product_name || '상품명'} {gift.amount_text}
               </div>
 
-              {/* 쿠폰번호 박스 */}
+              {/* 쿠폰번호 박스 (캡처 대상 - 여기엔 버튼/화살표를 넣지 않음) */}
               <div style={{ padding: '0 16px 18px', display: 'flex', justifyContent: 'center' }}>
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -308,7 +391,7 @@ export default function GiftGeneratePage() {
                   fontFamily: 'monospace', fontSize: 16, fontWeight: 700, letterSpacing: 1, lineHeight: 1,
                   color: '#1a1a2e', wordBreak: 'break-all', maxWidth: '100%', boxSizing: 'border-box',
                 }}>
-                  {couponNumber || 'M59D5A525F9462606'}
+                  {couponNumbers[previewIndex] || 'M59D5A525F9462606'}
                 </div>
               </div>
 
@@ -343,6 +426,73 @@ export default function GiftGeneratePage() {
               )}
             </div>
           </div>
+
+          {/* 미리보기 넘기기 + 저장 버튼 (카드 바로 아래, 캡처 대상 밖) */}
+          {reflected && (
+            <div style={{ width: 320, marginTop: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+                {isMulti && (
+                  <button
+                    onClick={() => setPreviewIndex(p => Math.max(0, p - 1))}
+                    disabled={previewIndex === 0 || capturing}
+                    style={{ ...navBtnStyle, opacity: previewIndex === 0 ? 0.35 : 1 }}
+                  >‹</button>
+                )}
+
+                <button
+                  onClick={saveCurrentImage}
+                  disabled={capturing}
+                  style={{
+                    flex: 1, padding: 12,
+                    background: savedFlags[previewIndex] ? '#fff' : 'linear-gradient(135deg, #ff9800, #f57c00)',
+                    color: savedFlags[previewIndex] ? '#ff9800' : '#fff',
+                    border: savedFlags[previewIndex] ? '1.5px solid #ff9800' : 'none',
+                    borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                    fontFamily: 'var(--font-noto-sans-kr), sans-serif',
+                  }}
+                >
+                  {capturing ? '저장 중...' : savedFlags[previewIndex] ? '✓ 다시 저장하기' : '🖼 이 쿠폰 이미지 저장하기'}
+                </button>
+
+                {isMulti && (
+                  <button
+                    onClick={() => setPreviewIndex(p => Math.min(couponNumbers.length - 1, p + 1))}
+                    disabled={previewIndex === couponNumbers.length - 1 || capturing}
+                    style={{ ...navBtnStyle, opacity: previewIndex === couponNumbers.length - 1 ? 0.35 : 1 }}
+                  >›</button>
+                )}
+              </div>
+
+              {isMulti && (
+                <div style={{ textAlign: 'center', marginTop: 8, fontSize: 11, color: '#999', fontWeight: 700 }}>
+                  {previewIndex + 1} / {couponNumbers.length}
+                  {savedFlags[previewIndex] && <span style={{ color: '#2e9c4b' }}> · ✓ 저장됨</span>}
+                  <span style={{ margin: '0 6px', color: '#ddd' }}>|</span>
+                  <span style={{ color: allSaved ? '#2e9c4b' : '#aaa' }}>
+                    {allSaved ? `✅ 전체 저장 완료` : `전체 저장 ${savedCount} / ${couponNumbers.length}`}
+                  </span>
+                </div>
+              )}
+
+              {allSaved && (
+                <button
+                  onClick={resetGeneration}
+                  style={{ width: '100%', padding: 12, marginTop: 12, background: '#fff', border: '1.5px solid #ddd', color: '#888', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}
+                >
+                  🔄 새로운 쿠폰 등록하기
+                </button>
+              )}
+
+              {!isMulti && savedFlags[0] && (
+                <button
+                  onClick={resetGeneration}
+                  style={{ width: '100%', padding: 12, marginTop: 12, background: '#fff', border: '1.5px solid #ddd', color: '#888', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}
+                >
+                  🔄 새로운 쿠폰 등록하기
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
