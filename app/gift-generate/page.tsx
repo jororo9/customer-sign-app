@@ -112,8 +112,14 @@ export default function GiftGeneratePage() {
 
   // draft 값이 바뀌면 "반영 완료" 상태를 해제 (재확인 유도)
   function onIssueCountChange(v: string) {
-    const raw = Number(v)
-    const n = Number.isFinite(raw) ? Math.max(1, Math.min(MAX_ISSUE_COUNT, Math.floor(raw))) : 1
+    // 입력 도중에는 숫자만 남기고 그대로 반영 (범위 보정은 blur 시점에)
+    const digitsOnly = v.replace(/[^0-9]/g, '')
+    setIssueCountDraft(digitsOnly)
+    setReflected(false)
+  }
+  function onIssueCountBlur() {
+    const raw = Number(issueCountDraft)
+    const n = Number.isFinite(raw) && raw > 0 ? Math.max(1, Math.min(MAX_ISSUE_COUNT, Math.floor(raw))) : 1
     setIssueCountDraft(String(n))
     setCouponNumbersDraft(prev => {
       const next = [...prev]
@@ -124,7 +130,6 @@ export default function GiftGeneratePage() {
       }
       return next
     })
-    setReflected(false)
   }
   function onCouponChange(i: number, v: string) {
     setCouponNumbersDraft(prev => {
@@ -236,7 +241,7 @@ export default function GiftGeneratePage() {
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#FFF7EC', minHeight: '100vh' }}>
 
       <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a2e', marginBottom: 4 }}>
-        🎁 B상품권 모바일 기프티콘 이미지 생성
+        🎁 모바일 기프티콘 이미지 생성
       </h1>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>정보를 입력한 뒤 [이미지에 반영하기]로 미리보기를 확인하고, 각 쿠폰을 화살표로 넘겨가며 저장하세요.</p>
 
@@ -266,8 +271,11 @@ export default function GiftGeneratePage() {
                   type="number"
                   min={1}
                   max={MAX_ISSUE_COUNT}
+                  inputMode="numeric"
                   value={issueCountDraft}
                   onChange={e => onIssueCountChange(e.target.value)}
+                  onFocus={e => e.target.select()}
+                  onBlur={onIssueCountBlur}
                   style={inputStyle}
                 />
                 {Number(issueCountDraft) > 1 && (
