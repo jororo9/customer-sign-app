@@ -236,7 +236,7 @@ export default function GiftGeneratePage() {
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#FFF7EC', minHeight: '100vh' }}>
 
       <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a2e', marginBottom: 4 }}>
-        🎁 모바일 기프티콘 이미지 생성
+        🎁 B상품권 모바일 기프티콘 이미지 생성
       </h1>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>정보를 입력한 뒤 [이미지에 반영하기]로 미리보기를 확인하고, 각 쿠폰을 화살표로 넘겨가며 저장하세요.</p>
 
