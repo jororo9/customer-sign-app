@@ -45,8 +45,12 @@ export default function GiftGeneratePage() {
   const [loaded, setLoaded] = useState(false)
   const [loadError, setLoadError] = useState(false)
 
+  // ---- 정보입력 / 미리보기 탭 전환 상태 (화면 크기 관계없이 항상 탭으로 분리) ----
+  const [activeTab, setActiveTab] = useState<'form' | 'preview'>('form')
+
   // ---- 입력값 (임시 상태 / draft) ----
   const [issueCountDraft, setIssueCountDraft] = useState('1')
+  const [issueCountApplied, setIssueCountApplied] = useState(true) // 발행 건수가 [확인] 버튼으로 적용되었는지 여부
   const [couponNumbersDraft, setCouponNumbersDraft] = useState<string[]>([''])
   const [selectedPeriodIdxDraft, setSelectedPeriodIdxDraft] = useState('')
   const [usageMethodDraft, setUsageMethodDraft] = useState('')
@@ -110,14 +114,15 @@ export default function GiftGeneratePage() {
     setReflected(false)
   }
 
-  // draft 값이 바뀌면 "반영 완료" 상태를 해제 (재확인 유도)
+  // ---- 쿠폰 발행 건수: 숫자만 입력받고, [확인] 버튼을 눌러야 실제로 쿠폰번호 입력칸 개수에 반영됨 ----
   function onIssueCountChange(v: string) {
-    // 입력 도중에는 숫자만 남기고 그대로 반영 (범위 보정은 blur 시점에)
     const digitsOnly = v.replace(/[^0-9]/g, '')
     setIssueCountDraft(digitsOnly)
+    setIssueCountApplied(false) // 값이 바뀌면 아직 미확인 상태로 표시
     setReflected(false)
   }
-  function onIssueCountBlur() {
+
+  function applyIssueCount() {
     const raw = Number(issueCountDraft)
     const n = Number.isFinite(raw) && raw > 0 ? Math.max(1, Math.min(MAX_ISSUE_COUNT, Math.floor(raw))) : 1
     setIssueCountDraft(String(n))
@@ -130,7 +135,10 @@ export default function GiftGeneratePage() {
       }
       return next
     })
+    setIssueCountApplied(true)
+    setReflected(false)
   }
+
   function onCouponChange(i: number, v: string) {
     setCouponNumbersDraft(prev => {
       const next = [...prev]
@@ -144,6 +152,11 @@ export default function GiftGeneratePage() {
   function onUsageChange(v: string) { setUsageMethodDraft(v); setReflected(false) }
 
   function reflectToImage() {
+    // 발행 건수를 바꿔놓고 아직 [확인]을 누르지 않았다면 먼저 확인부터 요청
+    if (!issueCountApplied) {
+      alert('쿠폰 발행 건수를 변경하셨습니다. [확인] 버튼을 눌러 쿠폰번호 입력칸을 먼저 적용해주세요.')
+      return
+    }
     const emptyIdx = couponNumbersDraft.findIndex(cn => !cn.trim())
     if (emptyIdx !== -1) {
       alert(`쿠폰번호 ${emptyIdx + 1}번을 입력해주세요.`)
@@ -162,6 +175,9 @@ export default function GiftGeneratePage() {
     setPreviewIndex(0)
     setSavedFlags(new Array(couponNumbersDraft.length).fill(false))
     setReflected(true)
+
+    // 반영 즉시 미리보기 탭으로 자동 전환
+    setActiveTab('preview')
   }
 
   const selectedPeriod: PeriodEntry | null =
@@ -206,6 +222,7 @@ export default function GiftGeneratePage() {
 
   function resetGeneration() {
     setIssueCountDraft('1')
+    setIssueCountApplied(true)
     setCouponNumbersDraft([''])
     setSelectedPeriodIdxDraft(gift.period_options.length > 0 ? '0' : '')
     setUsageMethodDraft(gift.usage_method)
@@ -220,6 +237,9 @@ export default function GiftGeneratePage() {
     setPreviewIndex(0)
     setSavedFlags([false])
     setReflected(false)
+
+    // 새로 등록 시작 시 다시 입력 탭으로
+    setActiveTab('form')
   }
 
   const isMulti = couponNumbers.length > 1
@@ -241,14 +261,41 @@ export default function GiftGeneratePage() {
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: '#FFF7EC', minHeight: '100vh' }}>
 
       <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a2e', marginBottom: 4 }}>
-        🎁 모바일 기프티콘 이미지 생성
+        🎁 B상품권 기프티콘 이미지 생성
       </h1>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>정보를 입력한 뒤 [이미지에 반영하기]로 미리보기를 확인하고, 각 쿠폰을 화살표로 넘겨가며 저장하세요.</p>
 
-      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+      {/* 정보입력 / 미리보기 탭 버튼 — 화면 크기와 관계없이 항상 노출 */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setActiveTab('form')}
+          className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
+            activeTab === 'form'
+              ? 'bg-[#ff9800] text-white shadow-md'
+              : 'bg-white text-[#999] border border-[#ddd]'
+          }`}
+        >
+          📝 정보 입력
+        </button>
+        <button
+          onClick={() => setActiveTab('preview')}
+          className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
+            activeTab === 'preview'
+              ? 'bg-[#ff9800] text-white shadow-md'
+              : 'bg-white text-[#999] border border-[#ddd]'
+          }`}
+        >
+          🎁 미리보기
+        </button>
+      </div>
+
+      <div>
 
         {/* 입력 영역 */}
-        <div style={{ flex: '1 1 320px', background: '#fff', borderRadius: 14, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+        <div
+          className={activeTab === 'form' ? 'block' : 'hidden'}
+          style={{ background: '#fff', borderRadius: 14, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}
+        >
 
           {!loaded && !loadError && (
             <div style={{ fontSize: 13, color: '#aaa', padding: '20px 0', textAlign: 'center' }}>불러오는 중...</div>
@@ -267,18 +314,36 @@ export default function GiftGeneratePage() {
             <>
               <div style={fieldBox}>
                 <label style={labelStyle}>쿠폰 발행 건수 (최대 {MAX_ISSUE_COUNT}건)</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={MAX_ISSUE_COUNT}
-                  inputMode="numeric"
-                  value={issueCountDraft}
-                  onChange={e => onIssueCountChange(e.target.value)}
-                  onFocus={e => e.target.select()}
-                  onBlur={onIssueCountBlur}
-                  style={inputStyle}
-                />
-                {Number(issueCountDraft) > 1 && (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="number"
+                    min={1}
+                    max={MAX_ISSUE_COUNT}
+                    inputMode="numeric"
+                    value={issueCountDraft}
+                    onChange={e => onIssueCountChange(e.target.value)}
+                    onFocus={e => e.target.select()}
+                    style={{ ...inputStyle, flex: 1 }}
+                  />
+                  <button
+                    onClick={applyIssueCount}
+                    style={{
+                      flexShrink: 0, padding: '0 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                      fontFamily: 'var(--font-noto-sans-kr), sans-serif',
+                      background: issueCountApplied ? '#fff' : '#ff9800',
+                      color: issueCountApplied ? '#999' : '#fff',
+                      border: issueCountApplied ? '1.5px solid #ddd' : '1.5px solid #ff9800',
+                    }}
+                  >
+                    확인
+                  </button>
+                </div>
+                {!issueCountApplied && (
+                  <div style={{ marginTop: 6, fontSize: 11, color: '#e74c3c', lineHeight: 1.5 }}>
+                    ⚠ [확인]을 눌러야 쿠폰번호 입력칸에 반영됩니다.
+                  </div>
+                )}
+                {issueCountApplied && couponNumbersDraft.length > 1 && (
                   <div style={{ marginTop: 6, fontSize: 11, color: '#ff9800', lineHeight: 1.5 }}>
                     ⚠ 여러 장을 동시에 생성하면 쿠폰번호를 제외한 등록기간·교환처·사용방법 등 모든 내용이 동일하게 적용됩니다.
                   </div>
@@ -329,7 +394,7 @@ export default function GiftGeneratePage() {
                 </div>
               ))}
 
-              {Number(issueCountDraft) > 1 && (
+              {issueCountApplied && couponNumbersDraft.length > 1 && (
                 <div style={{ marginBottom: 16, padding: '10px 12px', background: '#fff7ec', border: '1px solid #ffe0b3', borderRadius: 8, fontSize: 11, color: '#c77700', lineHeight: 1.6 }}>
                   ※ 쿠폰 동시 생성 시, 쿠폰번호를 제외한 등록기간 · 교환처 · 사용방법 등 모든 내용은 동일하게 생성되니 유의해주세요.
                 </div>
@@ -344,7 +409,7 @@ export default function GiftGeneratePage() {
 
               {reflected && (
                 <div style={{ marginTop: 10, fontSize: 12, color: '#2e9c4b', fontWeight: 700, textAlign: 'center' }}>
-                  ✓ 반영 완료 — 아래 미리보기에서 화살표로 넘겨가며 저장해주세요
+                  ✓ 반영 완료 — 미리보기 탭에서 화살표로 넘겨가며 저장해주세요
                 </div>
               )}
             </>
@@ -352,7 +417,10 @@ export default function GiftGeneratePage() {
         </div>
 
         {/* 미리보기 영역 */}
-        <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div
+          className={activeTab === 'preview' ? 'flex' : 'hidden'}
+          style={{ flexDirection: 'column', alignItems: 'center' }}
+        >
 
           <div ref={cardRef} style={{ width: 320, borderRadius: 20, overflow: 'hidden', position: 'relative', background: gift.background_color || '#FFF3D6' }}>
 
