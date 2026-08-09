@@ -14,6 +14,9 @@ type CategoryData = {
 }
 interface PeriodEntry { code: string; period: string }
 type GiftSettings = {
+  page_title: string
+  page_description: string
+  banner_text: string
   template_image_url: string
   brand_name: string
   product_name: string
@@ -45,6 +48,9 @@ const defaultData: CategoryData = {
 }
 
 const defaultGift: GiftSettings = {
+  page_title: 'B상품권 기프티콘 이미지 생성',
+  page_description: '정보를 입력한 뒤 이미지에 반영하기로 미리보기를 확인하고, 쿠폰 이미지를 저장하세요',
+  banner_text: '매니저님이 드리는 혜택',
   template_image_url: '',
   brand_name: '',
   product_name: '',
@@ -355,6 +361,9 @@ function GiftSettingsPanel() {
         ? row.period_options.map((p: any) => typeof p === 'string' ? { code: '', period: p } : { code: p.code || '', period: p.period || '' })
         : [{ code: '', period: '' }]
       setGift({
+        page_title: row.page_title || defaultGift.page_title,
+        page_description: row.page_description || defaultGift.page_description,
+        banner_text: row.banner_text ?? defaultGift.banner_text,
         template_image_url: row.template_image_url || '',
         brand_name: row.brand_name || '',
         product_name: row.product_name || '',
@@ -437,9 +446,47 @@ function GiftSettingsPanel() {
 
       <div style={{ padding: '32px 36px' }}>
 
+        {/* 페이지 타이틀 */}
+        <div style={sectionBox}>
+          <div style={sectionLabel}>화면 상단 타이틀</div>
+          <input
+            value={gift.page_title}
+            onChange={e => set('page_title', e.target.value)}
+            placeholder="예: B상품권 기프티콘 이미지 생성"
+            style={fullInput}
+          />
+        </div>
+
+        {/* 페이지 설명 문구 */}
+        <div style={sectionBox}>
+          <div style={sectionLabel}>화면 상단 설명 문구</div>
+          <textarea
+            value={gift.page_description}
+            onChange={e => set('page_description', e.target.value)}
+            placeholder="예: 정보를 입력한 뒤 이미지에 반영하기로 미리보기를 확인하고, 쿠폰 이미지를 저장하세요"
+            rows={2}
+            style={{ ...fullInput, resize: 'vertical', lineHeight: 1.6 }}
+          />
+        </div>
+
+        {/* 상단 배너 기본 문구 */}
+        <div style={sectionBox}>
+          <div style={sectionLabel}>상단 배너 기본 문구</div>
+          <input
+            value={gift.banner_text}
+            onChange={e => set('banner_text', e.target.value)}
+            placeholder="예: 매니저님이 드리는 혜택"
+            style={fullInput}
+          />
+          <div style={{ fontSize: 11, color: '#aaa', marginTop: 6, lineHeight: 1.6 }}>
+            여기 입력한 문구는 생성 화면에 처음 보여지는 <b>기본 초안</b>일 뿐이며, 실제로는 매니저가 화면에서 자유롭게 수정해서 사용합니다.<br />
+            비워두면 생성 화면에 배너 입력 영역 자체가 표시되지 않습니다.
+          </div>
+        </div>
+
         {/* 템플릿 이미지 */}
         <div style={sectionBox}>
-          <div style={sectionLabel}>기프티콘 상단 이미지 (예: 로고/금액 뱃지 디자인)</div>
+          <div style={sectionLabel}>기프티콘 상단 이미지</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             {gift.template_image_url && (
               <img src={gift.template_image_url} alt="템플릿" style={{ height: 90, objectFit: 'contain', borderRadius: 8, border: '1px solid #eee' }} />

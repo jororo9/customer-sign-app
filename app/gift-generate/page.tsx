@@ -8,6 +8,9 @@ interface NoticeItem { label: string; content: string }
 interface PeriodEntry { code: string; period: string }
 
 type GiftSettings = {
+  page_title: string
+  page_description: string
+  banner_text: string
   template_image_url: string
   bottom_image_url: string
   brand_name: string
@@ -20,7 +23,13 @@ type GiftSettings = {
   background_color: string
 }
 
+const DEFAULT_TITLE = 'B상품권 기프티콘 이미지 생성'
+const DEFAULT_DESCRIPTION = '정보를 입력한 뒤 이미지에 반영하기로 미리보기를 확인하고, 쿠폰 이미지를 저장하세요'
+
 const emptyGift: GiftSettings = {
+  page_title: DEFAULT_TITLE,
+  page_description: DEFAULT_DESCRIPTION,
+  banner_text: '',
   template_image_url: '',
   bottom_image_url: '',
   brand_name: '',
@@ -57,6 +66,9 @@ const COLOR = {
   peachBorder: '#F6CBAE',
   ink: '#17171A',
   inkHover: '#2B2B2E',
+  // 메인 헤더 전용 파스텔 세이지 톤 (배경과 은은하게 구분되는 모노톤 파스텔)
+  headerBg: '#EEF3EE',
+  headerBorder: '#DCE6DC',
 }
 
 export default function GiftGeneratePage() {
@@ -71,12 +83,12 @@ export default function GiftGeneratePage() {
   const [issueCountDraft, setIssueCountDraft] = useState('1')
   const [issueCountApplied, setIssueCountApplied] = useState(true) // 발행 건수가 [확인] 버튼으로 적용되었는지 여부
   const [couponNumbersDraft, setCouponNumbersDraft] = useState<string[]>([''])
-  const [selectedPeriodIdxDraft, setSelectedPeriodIdxDraft] = useState('')
+  const [selectedPeriodIdxDraft, setSelectedPeriodIdxDraft] = useState('') // 기본값 미선택 — 자동으로 첫 항목이 선택되지 않도록
   const [usageMethodDraft, setUsageMethodDraft] = useState('')
   const [exchangePlaceDraft, setExchangePlaceDraft] = useState('')
   const [extraItemsDraft, setExtraItemsDraft] = useState<NoticeItem[]>([])
 
-  // ---- 미리보기(카드)에 실제로 반영된 값 ----
+  // ---- 미리보기(카드)에 실제로 반영된 값 (쿠폰번호/등록기간 등 "이미지에 반영하기"로 적용되는 값들) ----
   const [couponNumbers, setCouponNumbers] = useState<string[]>([''])
   const [selectedPeriodIdx, setSelectedPeriodIdx] = useState('')
   const [usageMethod, setUsageMethod] = useState('')
@@ -84,6 +96,10 @@ export default function GiftGeneratePage() {
   const [extraItems, setExtraItems] = useState<NoticeItem[]>([])
   const [previewIndex, setPreviewIndex] = useState(0) // 지금 카드에 보여지는 쿠폰 순번 (자유롭게 이동 가능)
   const [savedFlags, setSavedFlags] = useState<boolean[]>([false])
+
+  // ---- 상단 배너 — 매니저가 화면에서 직접 문구를 자유롭게 작성. 반영 버튼과 무관하게 즉시 미리보기에 반영됨 ----
+  const [bannerTextInput, setBannerTextInput] = useState('') // 매니저가 직접 쓰는 배너 문구 (어드민의 banner_text는 초기 기본값으로만 사용)
+  const [bannerVisible, setBannerVisible] = useState(true)
 
   const [reflected, setReflected] = useState(false) // "이미지에 반영하기" 눌렀는지 여부
   const [capturing, setCapturing] = useState(false)
@@ -102,6 +118,9 @@ export default function GiftGeneratePage() {
       .map((p: any) => typeof p === 'string' ? { code: '', period: p } : { code: p.code || '', period: p.period || '' })
       .filter((p: PeriodEntry) => p.code.trim() || p.period.trim())
     const g: GiftSettings = {
+      page_title: row.page_title || DEFAULT_TITLE,
+      page_description: row.page_description || DEFAULT_DESCRIPTION,
+      banner_text: row.banner_text || '',
       template_image_url: row.template_image_url || '',
       bottom_image_url: row.bottom_image_url || '',
       brand_name: row.brand_name || '',
@@ -119,7 +138,10 @@ export default function GiftGeneratePage() {
     setUsageMethodDraft(g.usage_method)
     setExchangePlaceDraft(g.exchange_place)
     setExtraItemsDraft(g.extra_items.map((it: NoticeItem) => ({ ...it })))
-    setSelectedPeriodIdxDraft(g.period_options.length > 0 ? '0' : '')
+    setSelectedPeriodIdxDraft('') // 항상 "선택해주세요" 상태로 시작
+
+    // 배너 입력창은 어드민이 등록한 문구를 "초안"으로 미리 채워두되, 매니저가 자유롭게 수정 가능
+    setBannerTextInput(g.banner_text)
 
     setLoaded(true)
   }
@@ -186,6 +208,10 @@ export default function GiftGeneratePage() {
       alert(`쿠폰번호 ${invalidIdx + 1}번이 17자리가 아닙니다. 확인해주세요.`)
       return
     }
+    if (!selectedPeriodIdxDraft) {
+      alert('등록기간을 선택해주세요.')
+      return
+    }
     setCouponNumbers([...couponNumbersDraft])
     setSelectedPeriodIdx(selectedPeriodIdxDraft)
     setUsageMethod(usageMethodDraft)
@@ -243,7 +269,7 @@ export default function GiftGeneratePage() {
     setIssueCountDraft('1')
     setIssueCountApplied(true)
     setCouponNumbersDraft([''])
-    setSelectedPeriodIdxDraft(gift.period_options.length > 0 ? '0' : '')
+    setSelectedPeriodIdxDraft('')
     setUsageMethodDraft(gift.usage_method)
     setExchangePlaceDraft(gift.exchange_place)
     setExtraItemsDraft(gift.extra_items.map((it: NoticeItem) => ({ ...it })))
@@ -256,6 +282,10 @@ export default function GiftGeneratePage() {
     setPreviewIndex(0)
     setSavedFlags([false])
     setReflected(false)
+
+    // 배너 입력값도 어드민 기본 문구로 초기화
+    setBannerTextInput(gift.banner_text)
+    setBannerVisible(true)
 
     // 새로 등록 시작 시 다시 입력 탭으로
     setActiveTab('form')
@@ -281,7 +311,7 @@ export default function GiftGeneratePage() {
   }
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 16px 60px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: COLOR.bg, minHeight: '100vh' }}>
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 16px 60px', fontFamily: 'var(--font-noto-sans-kr), sans-serif', background: COLOR.bg, minHeight: '100vh', overflowX: 'hidden' }}>
 
       {/* 포커스 링 / 인풋 상태를 위한 최소한의 scoped 스타일 */}
       <style>{`
@@ -294,11 +324,24 @@ export default function GiftGeneratePage() {
         .bp-ghost-btn:hover { border-color: ${COLOR.borderStrong} !important; background: #FAFAF9 !important; }
       `}</style>
 
-      <h1 style={{ fontSize: 24, fontWeight: 700, color: COLOR.textPrimary, marginBottom: 8, letterSpacing: '-0.01em', textAlign: 'center' }}>
-        B상품권 기프티콘 이미지 생성
-      </h1>
-      <p style={{ fontSize: 13, color: COLOR.textSecondary, marginBottom: 28, lineHeight: 1.6, textAlign: 'center' }}>
-        정보를 입력한 뒤 <strong style={{ color: COLOR.textPrimary, fontWeight: 700 }}>이미지에 반영하기</strong>로 미리보기를 확인하고, 쿠폰 이미지를 저장하세요
+      {/* 타이틀 - 화면 끝까지 이어지는 직사각형(풀블리드) + 블랙&화이트 */}
+      <div style={{
+        background: COLOR.ink,
+        padding: '22px 16px',
+        marginTop: -32,
+        marginBottom: 20,
+        marginLeft: '50%',
+        transform: 'translateX(-50%)',
+        width: '100vw',
+        boxSizing: 'border-box',
+      }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.01em', textAlign: 'center', margin: 0 }}>
+          {gift.page_title || DEFAULT_TITLE}
+        </h1>
+      </div>
+
+      <p style={{ fontSize: 13, color: COLOR.textSecondary, marginBottom: 28, lineHeight: 1.6, textAlign: 'center', whiteSpace: 'pre-wrap' }}>
+        {gift.page_description || DEFAULT_DESCRIPTION}
       </p>
 
       {/* 정보입력 / 미리보기 탭 — 캡슐형 세그먼트 컨트롤 */}
@@ -356,6 +399,28 @@ export default function GiftGeneratePage() {
 
           {loaded && (
             <>
+              {/* 상단 배너 — 어드민이 배너 기능을 켜뒀을 때만(gift.banner_text 존재) 입력창 노출, 문구는 매니저가 직접 작성 */}
+              {!!gift.banner_text && (
+                <div style={fieldBox}>
+                  <label style={labelStyle}>상단 배너 문구 (자유롭게 수정해서 사용하세요)</label>
+                  <input
+                    className="bp-input"
+                    value={bannerTextInput}
+                    onChange={e => setBannerTextInput(e.target.value)}
+                    placeholder="예: 홍길동 매니저님이 드리는 혜택"
+                    style={inputStyle}
+                  />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 12, color: COLOR.textSecondary, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={bannerVisible}
+                      onChange={e => setBannerVisible(e.target.checked)}
+                    />
+                    상단 배너 표시하기 (체크/문구 수정 시 바로 미리보기에 반영됩니다)
+                  </label>
+                </div>
+              )}
+
               <div style={fieldBox}>
                 <label style={labelStyle}>쿠폰 발행 건수 (최대 {MAX_ISSUE_COUNT}건)</label>
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -417,7 +482,7 @@ export default function GiftGeneratePage() {
               ))}
 
               <div style={fieldBox}>
-                <label style={labelStyle}>등록기간</label>
+                <label style={labelStyle}>등록기간 (필수)</label>
                 {gift.period_options.length > 0 ? (
                   <select className="bp-input" value={selectedPeriodIdxDraft} onChange={e => onPeriodChange(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
                     <option value="">선택해주세요</option>
@@ -487,7 +552,21 @@ export default function GiftGeneratePage() {
           }}>
             <div ref={cardRef} style={{ width: 320, borderRadius: 20, overflow: 'hidden', position: 'relative', background: gift.background_color || '#FFF3D6', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}>
 
-              {/* 상단 템플릿 이미지 (컬러 배경 영역) - 카드 너비에 꽉 차는 사각형 */}
+              {/* 상단 배너 (매니저가 직접 작성한 문구 / 체크박스로 즉시 켜고 끌 수 있음) */}
+              {bannerVisible && !!bannerTextInput.trim() && (
+                <div style={{
+                  padding: '12px 16px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  color: COLOR.textPrimary,
+                  background: 'rgba(255,255,255,0.55)',
+                }}>
+                  🎁 {bannerTextInput}
+                </div>
+              )}
+
+              {/* 상단 템플릿 이미지 (정사각/원본 비율 그대로) */}
               <div style={{ padding: '20px 16px 30px', display: 'flex', justifyContent: 'center' }}>
                 {gift.template_image_url ? (
                   <img
