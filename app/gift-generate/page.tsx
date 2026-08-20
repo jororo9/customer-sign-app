@@ -44,9 +44,9 @@ const emptyGift: GiftSettings = {
 
 const MAX_ISSUE_COUNT = 5 // 모바일 기반이라 동시 발행은 최대 5건까지만 허용
 
-// 17자리, 띄어쓰기 없이 영문/숫자만
+// 18자리, 띄어쓰기 없이 영문/숫자만
 function sanitizeCouponNumber(raw: string) {
-  return raw.replace(/[^0-9a-zA-Z]/g, '').slice(0, 17)
+  return raw.replace(/[^0-9a-zA-Z]/g, '').slice(0, 18)
 }
 
 // ---- 디자인 토큰 (모노톤 베이스 + 파스텔 포인트 최소 사용) ----
@@ -203,9 +203,9 @@ export default function GiftGeneratePage() {
       alert(`쿠폰번호 ${emptyIdx + 1}번을 입력해주세요.`)
       return
     }
-    const invalidIdx = couponNumbersDraft.findIndex(cn => cn.length !== 17)
+    const invalidIdx = couponNumbersDraft.findIndex(cn => cn.length !== 18)
     if (invalidIdx !== -1) {
-      alert(`쿠폰번호 ${invalidIdx + 1}번이 17자리가 아닙니다. 확인해주세요.`)
+      alert(`쿠폰번호 ${invalidIdx + 1}번이 18자리가 아닙니다. 확인해주세요.`)
       return
     }
     if (!selectedPeriodIdxDraft) {
@@ -469,13 +469,13 @@ export default function GiftGeneratePage() {
               {couponNumbersDraft.map((cn, i) => (
                 <div key={i} style={fieldBox}>
                   <label style={labelStyle}>
-                    쿠폰번호{couponNumbersDraft.length > 1 ? ` ${i + 1}` : ''} (17자리)
+                    쿠폰번호{couponNumbersDraft.length > 1 ? ` ${i + 1}` : ''} (18자리)
                   </label>
                   <input
                     className="bp-input"
                     value={cn}
                     onChange={e => onCouponChange(i, e.target.value)}
-                    placeholder="예: M59D5A525F9462606"
+                    placeholder="예: M59D5A525F9462606A"
                     style={{ ...inputStyle, fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.02em' }}
                   />
                 </div>
@@ -609,7 +609,7 @@ export default function GiftGeneratePage() {
                     fontFamily: 'monospace', fontSize: 15, fontWeight: 700, letterSpacing: '0.14em', lineHeight: 1,
                     color: '#1a1a2e', whiteSpace: 'nowrap', maxWidth: '100%', boxSizing: 'border-box',
                   }}>
-                    {couponNumbers[previewIndex] || 'M59D5A525F9462606'}
+                    {couponNumbers[previewIndex] || 'M59D5A525F9462606A'}
                   </div>
                 </div>
 
