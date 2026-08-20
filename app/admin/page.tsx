@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface NoticeItem { label: string; content: string }
@@ -36,6 +36,7 @@ const CATEGORIES = [
 const SECTIONS = [
   { key: 'notice', label: '📋 안내사항 설정' },
   { key: 'gift', label: '🎁 사은품 설정' },
+  { key: 'promotion', label: '🏃 프로모션 현황' },
 ]
 
 const defaultData: CategoryData = {
@@ -90,7 +91,7 @@ const removeBtn: React.CSSProperties = {
 }
 
 export default function AdminPage() {
-  const [section, setSection] = useState<'notice' | 'gift'>('notice')
+  const [section, setSection] = useState<'notice' | 'gift' | 'promotion'>('notice')
 
   return (
     <div style={{ width: '100%', minHeight: '100vh', background: '#EBF5FF' }}>
@@ -101,13 +102,14 @@ export default function AdminPage() {
           <div style={{ display: 'flex', gap: 8 }}>
             <a href="/consent" target="_blank" style={{ padding: '8px 16px', background: '#fff', border: '1.5px solid #1E90FF', borderRadius: 8, fontSize: 13, fontWeight: 700, color: '#1E90FF', textDecoration: 'none' }}>👁 고객 확인서</a>
             <a href="/gift-generate" target="_blank" style={{ padding: '8px 16px', background: '#fff', border: '1.5px solid #ff9800', borderRadius: 8, fontSize: 13, fontWeight: 700, color: '#ff9800', textDecoration: 'none' }}>🎁 기프티콘 생성</a>
+            <a href="/promotion" target="_blank" style={{ padding: '8px 16px', background: '#fff', border: '1.5px solid #2ecc71', borderRadius: 8, fontSize: 13, fontWeight: 700, color: '#2ecc71', textDecoration: 'none' }}>🏃 프로모션 현황판</a>
           </div>
         </div>
 
-        {/* 섹션 전환 탭 (안내사항 설정 / 사은품 설정) */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        {/* 섹션 전환 탭 (안내사항 설정 / 사은품 설정 / 프로모션 현황) */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
           {SECTIONS.map(s => (
-            <button key={s.key} onClick={() => setSection(s.key as 'notice' | 'gift')}
+            <button key={s.key} onClick={() => setSection(s.key as 'notice' | 'gift' | 'promotion')}
               style={{
                 padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
                 fontFamily: 'var(--font-noto-sans-kr), sans-serif',
@@ -121,7 +123,7 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {section === 'notice' ? <NoticeSettings /> : <GiftSettingsPanel />}
+        {section === 'notice' ? <NoticeSettings /> : section === 'gift' ? <GiftSettingsPanel /> : <PromotionSettingsPanel />}
       </div>
     </div>
   )
@@ -343,7 +345,7 @@ function NoticeSettings() {
 }
 
 // ============================================================
-// 사은품 설정 (신규 기능)
+// 사은품 설정 (기존 기능)
 // ============================================================
 function GiftSettingsPanel() {
   const [gift, setGift] = useState<GiftSettings>({ ...defaultGift, period_options: [{ code: '', period: '' }], extra_items: [] })
@@ -597,6 +599,319 @@ function GiftSettingsPanel() {
         <button onClick={save} disabled={saving} style={{ width: '100%', padding: 14, background: '#ff9800', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>
           {saving ? '저장 중...' : saved ? '✓ 저장됨!' : '저장'}
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================
+// 🏃 프로모션 현황 설정 (신규 기능)
+// ============================================================
+type ManagerRow = { branch: string; team: string; manager_name: string; performance: number }
+type PromoSettings = {
+  title: string
+  target1: number; target2: number; target3: number
+  reward1_text: string; reward2_text: string; reward3_text: string
+  current_day: number; total_day: number
+  cheer_messages: string[]
+}
+
+const defaultPromoSettings: PromoSettings = {
+  title: '프로모션 달성 현황',
+  target1: 5, target2: 10, target3: 15,
+  reward1_text: '1만원권', reward2_text: '2만원권', reward3_text: '3만원권',
+  current_day: 3, total_day: 5,
+  cheer_messages: ['조금만 더 힘내요', '거의 다 왔어요, 파이팅', '오늘도 달리는 중', '한 걸음만 더', '끝까지 힘내주세요'],
+}
+
+function parsePastedTable(text: string): ManagerRow[] {
+  const lines = text.trim().split('\n').map(l => l.trim()).filter(Boolean)
+  if (lines.length === 0) return []
+
+  const header = lines[0].split('\t')
+  const looksLikeHeader = header.some(h => h.includes('매니저') || h.includes('지사') || h.includes('실적'))
+  const idx = {
+    branch: header.findIndex(h => h.includes('지사')),
+    team: header.findIndex(h => h.includes('팀')),
+    name: header.findIndex(h => h.includes('매니저') || h.includes('이름')),
+    perf: header.findIndex(h => h.includes('실적')),
+  }
+
+  const dataLines = looksLikeHeader ? lines.slice(1) : lines
+  const rows: ManagerRow[] = []
+
+  for (const line of dataLines) {
+    const cols = line.split('\t').map(c => c.trim())
+    if (cols.length < 2) continue
+
+    let branch = '', team = '', name = '', perf = ''
+    if (looksLikeHeader && idx.name >= 0) {
+      branch = idx.branch >= 0 ? cols[idx.branch] : ''
+      team = idx.team >= 0 ? cols[idx.team] : ''
+      name = cols[idx.name]
+      perf = idx.perf >= 0 ? cols[idx.perf] : ''
+    } else {
+      // 헤더가 없거나 못 찾으면: NO 지사 팀 매니저 실적 (보상) 순서로 추정
+      const c = cols[0]?.match(/^\d+$/) ? cols.slice(1) : cols
+      branch = c[0] || ''
+      team = c[1] || ''
+      name = c[2] || ''
+      perf = c[3] || ''
+    }
+
+    if (!name) continue
+    const performance = Number(String(perf).replace(/[^0-9.-]/g, '')) || 0
+    rows.push({ branch, team, manager_name: name, performance })
+  }
+  return rows
+}
+
+function PromotionSettingsPanel() {
+  const [settings, setSettings] = useState<PromoSettings>(defaultPromoSettings)
+  const [pasteText, setPasteText] = useState('')
+  const [preview, setPreview] = useState<ManagerRow[]>([])
+  const [currentManagers, setCurrentManagers] = useState<ManagerRow[]>([])
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    const { data: s } = await supabase.from('promotion_settings').select('*').eq('id', 1).maybeSingle()
+    if (s) {
+      setSettings({
+        title: s.title || defaultPromoSettings.title,
+        target1: s.target1 ?? defaultPromoSettings.target1,
+        target2: s.target2 ?? defaultPromoSettings.target2,
+        target3: s.target3 ?? defaultPromoSettings.target3,
+        reward1_text: s.reward1_text || defaultPromoSettings.reward1_text,
+        reward2_text: s.reward2_text || defaultPromoSettings.reward2_text,
+        reward3_text: s.reward3_text || defaultPromoSettings.reward3_text,
+        current_day: s.current_day ?? defaultPromoSettings.current_day,
+        total_day: s.total_day ?? defaultPromoSettings.total_day,
+        cheer_messages: (Array.isArray(s.cheer_messages) && s.cheer_messages.length > 0) ? s.cheer_messages : defaultPromoSettings.cheer_messages,
+      })
+    }
+    const { data: rows } = await supabase.from('promotion_managers').select('branch,team,manager_name,performance').order('performance', { ascending: false })
+    if (rows) setCurrentManagers(rows as ManagerRow[])
+    setLoaded(true)
+  }
+
+  function set<K extends keyof PromoSettings>(field: K, value: PromoSettings[K]) {
+    setSettings(prev => ({ ...prev, [field]: value }))
+  }
+
+  function handlePasteChange(text: string) {
+    setPasteText(text)
+    setPreview(parsePastedTable(text))
+  }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const text = await file.text()
+    // 콤마 CSV일 수도 있으니 탭이 없으면 콤마를 탭으로 변환
+    const normalized = text.includes('\t') ? text : text.replace(/,/g, '\t')
+    handlePasteChange(normalized)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  async function saveManagers() {
+    if (preview.length === 0) {
+      alert('먼저 실적 데이터를 붙여넣거나 CSV 파일을 업로드해주세요.')
+      return
+    }
+    setSaving(true)
+    await supabase.from('promotion_managers').delete().neq('id', -1)
+    const { error } = await supabase.from('promotion_managers').insert(
+      preview.map(r => ({ ...r, updated_at: new Date().toISOString() }))
+    )
+    if (error) {
+      alert('저장 실패: ' + error.message)
+      setSaving(false)
+      return
+    }
+    setCurrentManagers([...preview].sort((a, b) => b.performance - a.performance))
+    setPasteText('')
+    setPreview([])
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  async function saveSettings() {
+    setSaving(true)
+    await supabase.from('promotion_settings').upsert({
+      id: 1, ...settings, updated_at: new Date().toISOString(),
+    })
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  if (!loaded) return null
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.10)', overflow: 'hidden' }}>
+
+      <div style={{ background: 'linear-gradient(135deg, #2ecc71, #27ae60)', padding: '28px 36px' }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', textAlign: 'center' }}>🏃 프로모션 현황판 설정</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 6, textAlign: 'center' }}>
+          여기서 저장한 실적/목표치가 공개 페이지( /promotion )에 실시간으로 반영됩니다
+        </div>
+      </div>
+
+      <div style={{ padding: '32px 36px' }}>
+
+        {/* 진행 설정 */}
+        <div style={sectionBox}>
+          <div style={sectionLabel}>화면 상단 타이틀</div>
+          <input value={settings.title} onChange={e => set('title', e.target.value)} style={fullInput} />
+        </div>
+
+        <div style={sectionBox}>
+          <div style={sectionLabel}>진행 일차 (현재 며칠째 / 총 며칠)</div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <input type="number" value={settings.current_day} onChange={e => set('current_day', Number(e.target.value))} style={{ ...optionInput, maxWidth: 100 }} />
+            <span style={{ color: '#888', fontSize: 13 }}>일차 /</span>
+            <input type="number" value={settings.total_day} onChange={e => set('total_day', Number(e.target.value))} style={{ ...optionInput, maxWidth: 100 }} />
+            <span style={{ color: '#888', fontSize: 13 }}>영업일</span>
+          </div>
+        </div>
+
+        {/* 상단 응원 문구 */}
+        <div style={sectionBox}>
+          <div style={sectionLabel}>상단에 번갈아 뜨는 응원 문구 (3~4초마다 자동 전환)</div>
+          {settings.cheer_messages.map((msg, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <input
+                value={msg}
+                onChange={e => {
+                  const next = [...settings.cheer_messages]
+                  next[i] = e.target.value
+                  set('cheer_messages', next)
+                }}
+                placeholder={`응원 문구 ${i + 1}`}
+                style={optionInput}
+              />
+              <button
+                onClick={() => set('cheer_messages', settings.cheer_messages.filter((_, idx) => idx !== i))}
+                style={removeBtn}
+              >×</button>
+            </div>
+          ))}
+          <button
+            onClick={() => set('cheer_messages', [...settings.cheer_messages, ''])}
+            style={addBtn}
+          >＋ 응원 문구 추가</button>
+        </div>
+
+        {/* 구간 목표치 */}
+        <div style={sectionBox}>
+          <div style={sectionLabel}>구간별 목표치 &amp; 혜택</div>
+          {[1, 2, 3].map(n => (
+            <div key={n} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#2ecc71', minWidth: 46 }}>{n}구간</span>
+              <input
+                type="number"
+                value={(settings as any)[`target${n}`]}
+                onChange={e => set(`target${n}` as keyof PromoSettings, Number(e.target.value) as any)}
+                placeholder="실적 기준"
+                style={{ ...optionInput, maxWidth: 100 }}
+              />
+              <span style={{ fontSize: 12, color: '#888' }}>이상 →</span>
+              <input
+                value={(settings as any)[`reward${n}_text`]}
+                onChange={e => set(`reward${n}_text` as keyof PromoSettings, e.target.value as any)}
+                placeholder="혜택 (예: 1만원권)"
+                style={optionInput}
+              />
+            </div>
+          ))}
+          <button onClick={saveSettings} disabled={saving} style={{ ...addBtn, borderStyle: 'solid', color: '#2ecc71', borderColor: '#2ecc71', marginTop: 8 }}>
+            {saving ? '저장 중...' : '설정 저장'}
+          </button>
+        </div>
+
+        <hr style={{ border: 'none', borderTop: '1.5px solid #eee', margin: '28px 0' }} />
+
+        {/* 실적 업로드 */}
+        <div style={sectionBox}>
+          <div style={sectionLabel}>매니저 실적 업로드 (지사 / 팀 / 매니저 / 실적)</div>
+          <div style={{ fontSize: 12, color: '#888', marginBottom: 12, lineHeight: 1.6 }}>
+            엑셀에서 <b>지사, 팀, 매니저, 실적</b> 컬럼(헤더 포함)을 그대로 복사해서 아래에 붙여넣으세요.<br />
+            또는 CSV 파일을 업로드해도 됩니다. 저장하면 기존 실적 데이터를 <b>전체 교체</b>합니다.
+          </div>
+
+          <textarea
+            value={pasteText}
+            onChange={e => handlePasteChange(e.target.value)}
+            placeholder={'지사\t팀\t매니저\t실적\n동부\t1팀 T\t김지은\t12\n경인\t2팀\t양미숙\t10\n...'}
+            rows={6}
+            style={{ ...fullInput, resize: 'vertical', fontFamily: 'monospace', fontSize: 12, lineHeight: 1.6, marginBottom: 10 }}
+          />
+
+          <label style={{ display: 'inline-block', padding: '8px 16px', background: '#fff', border: '1.5px solid #2ecc71', color: '#2ecc71', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif', marginBottom: 12 }}>
+            📁 CSV 파일 선택
+            <input ref={fileInputRef} type="file" accept=".csv,text/csv" onChange={handleFile} style={{ display: 'none' }} />
+          </label>
+
+          {preview.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#2ecc71', marginBottom: 8 }}>미리보기: {preview.length}명 인식됨</div>
+              <div style={{ maxHeight: 240, overflowY: 'auto', border: '1.5px solid #eee', borderRadius: 8 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: '#f8f9ff' }}>
+                      <th style={{ padding: '6px 10px', textAlign: 'left' }}>지사</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'left' }}>팀</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'left' }}>매니저</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'right' }}>실적</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preview.map((r, i) => (
+                      <tr key={i} style={{ borderTop: '1px solid #f0f0f0' }}>
+                        <td style={{ padding: '5px 10px' }}>{r.branch}</td>
+                        <td style={{ padding: '5px 10px' }}>{r.team}</td>
+                        <td style={{ padding: '5px 10px' }}>{r.manager_name}</td>
+                        <td style={{ padding: '5px 10px', textAlign: 'right' }}>{r.performance}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button onClick={saveManagers} disabled={saving} style={{ width: '100%', padding: 14, marginTop: 14, background: '#2ecc71', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-noto-sans-kr), sans-serif' }}>
+                {saving ? '저장 중...' : saved ? '✓ 저장됨!' : `이 ${preview.length}명으로 실적 데이터 전체 교체 저장`}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 현재 저장된 데이터 */}
+        <div style={sectionBox}>
+          <div style={sectionLabel}>현재 저장된 실적 데이터 ({currentManagers.length}명)</div>
+          {currentManagers.length === 0 ? (
+            <div style={{ fontSize: 13, color: '#aaa' }}>아직 업로드된 데이터가 없습니다.</div>
+          ) : (
+            <div style={{ maxHeight: 200, overflowY: 'auto', border: '1.5px solid #eee', borderRadius: 8 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <tbody>
+                  {currentManagers.map((r, i) => (
+                    <tr key={i} style={{ borderTop: i === 0 ? 'none' : '1px solid #f0f0f0' }}>
+                      <td style={{ padding: '5px 10px', color: '#888' }}>{r.branch} · {r.team}</td>
+                      <td style={{ padding: '5px 10px', fontWeight: 600 }}>{r.manager_name}</td>
+                      <td style={{ padding: '5px 10px', textAlign: 'right', fontWeight: 700, color: '#2ecc71' }}>{r.performance}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   )
