@@ -35,23 +35,23 @@ const CHEER_MESSAGES = [
   '끝까지 힘내주세요',
 ]
 
-// ---- 디자인 토큰 (모던 SaaS 대시보드) ----
+// ---- 디자인 토큰 (가을 동화 팔레트) ----
 const T = {
-  bg: '#F1F5F9',
-  card: '#FFFFFF',
-  border: '#E2E8F0',
-  shadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-  radius: 16,
-  radiusSm: 10,
-  accent: '#0D9488',
-  accentDark: '#0F766E',
-  accentSoft: '#F0FDFA',
-  textPrimary: '#0F172A',
-  textSecondary: '#64748B',
-  textMuted: '#94A3B8',
-  tier1: '#D97706',
-  tier2: '#EA580C',
-  tier3: '#DB2777',
+  bg: '#FBF1E1',
+  card: '#FFFDF8',
+  border: '#E8D5B5',
+  shadow: '0 6px 16px -4px rgba(59,42,26,0.12)',
+  radius: 20,
+  radiusSm: 14,
+  accent: '#4B7F52',
+  accentDark: '#355E3B',
+  accentSoft: '#E3EDDD',
+  textPrimary: '#3E2723',
+  textSecondary: '#7B5E4B',
+  textMuted: '#A98F76',
+  tier1: '#D4A017',
+  tier2: '#C1440E',
+  tier3: '#7A2E2E',
 }
 const FONT = "'Pretendard', 'Inter', var(--font-noto-sans-kr), sans-serif"
 
@@ -74,6 +74,9 @@ function isTeamLead(team: string) {
 function seededRandom(seed: number) {
   const x = Math.sin(seed * 999) * 10000
   return x - Math.floor(x)
+}
+function tierColor(tier: number) {
+  return tier === 3 ? T.tier3 : tier === 2 ? T.tier2 : tier === 1 ? T.tier1 : '#D6D3D1'
 }
 
 const RUNNER_EMOJIS = ['🐣', '🐰', '🐱', '🐶', '🐻', '🦊', '🏃💨']
@@ -180,8 +183,9 @@ export default function PromotionPage() {
   return (
     <div style={{ minHeight: '100vh', background: T.bg, fontFamily: FONT, paddingBottom: 60 }}>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
         @keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
-        @keyframes glow { 0%,100% { box-shadow: 0 0 0 0 rgba(13,148,136,0.25) } 50% { box-shadow: 0 0 0 8px rgba(13,148,136,0) } }
+        @keyframes glow { 0%,100% { box-shadow: 0 0 0 0 rgba(75,127,82,0.25) } 50% { box-shadow: 0 0 0 8px rgba(75,127,82,0) } }
         .runner { animation: bob 1.1s ease-in-out infinite; display: inline-block; cursor: default; }
         .highlight-row { animation: glow 1s ease-in-out 2; }
         .dot-runner { position: relative; }
@@ -192,8 +196,9 @@ export default function PromotionPage() {
           white-space: nowrap; transition: opacity .15s; pointer-events: none; z-index: 20;
         }
         .dot-runner:hover .tip { visibility: visible; opacity: 1; }
+        .promo-title { font-family: 'Jua', ${FONT}; }
         @media (max-width: 480px) {
-          .promo-title { font-size: 20px !important; }
+          .promo-title { font-size: 30px !important; }
           .promo-stat-num { font-size: 18px !important; }
           .promo-section-pad { padding-left: 12px !important; padding-right: 12px !important; }
         }
@@ -202,7 +207,7 @@ export default function PromotionPage() {
       {/* 상단 헤더 */}
       <div className="promo-section-pad" style={{ maxWidth: 960, margin: '0 auto', padding: '32px 24px 10px' }}>
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
-          <div className="promo-title" style={{ fontSize: 26, fontWeight: 700, color: T.textPrimary, letterSpacing: '-0.02em' }}>{settings.title}</div>
+          <div className="promo-title" style={{ fontSize: 40, fontWeight: 400, color: T.textPrimary, letterSpacing: '-0.01em' }}>{settings.title}</div>
           <div style={{ fontSize: 14, color: T.accentDark, marginTop: 6, fontWeight: 600 }}>
             {selectedBranch ? `${selectedBranch}${selectedTeam ? ' · ' + selectedTeam : ''} 매니저님들, 이렇게 뛰고 있어요` : cheer}
           </div>
@@ -394,10 +399,10 @@ function TrackView({
         다 함께 출발선에서! · {managers.length}명 <span style={{ color: T.textMuted, fontWeight: 500 }}>(이모지에 마우스를 올려보세요)</span>
       </div>
 
-      <div style={{ position: 'relative', height: trackHeight, margin: '30px 20px 24px', borderRadius: T.radiusSm, overflow: 'visible', background: '#E8F5E9', backgroundImage: 'repeating-linear-gradient(90deg, rgba(76,175,80,0.06) 0 2px, transparent 2px 40px)', border: `1px solid ${T.border}` }}>
+      <div style={{ position: 'relative', height: trackHeight, margin: '30px 20px 24px', borderRadius: T.radiusSm, overflow: 'visible', background: '#F3E3C7', backgroundImage: 'repeating-linear-gradient(90deg, rgba(139,90,43,0.10) 0 2px, transparent 2px 40px)', border: `1px solid ${T.border}` }}>
 
         <div style={{ position: 'absolute', left: 8, top: 0, bottom: 0, width: 0, borderLeft: `2px dashed ${T.textMuted}` }} />
-        <div style={{ position: 'absolute', left: 6, top: -1, fontSize: 10, fontWeight: 700, color: T.textSecondary, background: '#E8F5E9', padding: '0 3px' }}>출발</div>
+        <div style={{ position: 'absolute', left: 6, top: -1, fontSize: 10, fontWeight: 700, color: T.textSecondary, background: '#F3E3C7', padding: '0 3px' }}>출발</div>
 
         {[
           { t: settings.target1, reward: settings.reward1_text, color: T.tier1 },
@@ -407,7 +412,7 @@ function TrackView({
           const leftPct = 6 + (booth.t / trackMax) * 90
           return (
             <div key={i} style={{ position: 'absolute', left: `${leftPct}%`, top: 0, bottom: 0, width: 0, borderLeft: `1px dashed ${booth.color}88`, zIndex: 3 }}>
-              <div style={{ position: 'absolute', top: -26, left: '50%', transform: 'translateX(-50%)', fontSize: 20, lineHeight: 1 }}>🎁</div>
+              <div style={{ position: 'absolute', top: -26, left: '50%', transform: 'translateX(-50%)', fontSize: 20, lineHeight: 1 }}>🍁</div>
               <div style={{
                 position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap',
                 background: '#fff', color: booth.color, border: `1px solid ${booth.color}55`, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
@@ -487,7 +492,7 @@ function RankView({
         {managers.map(m => {
           const pct = Math.min(100, (m.performance / trackMax) * 100)
           const tier = m.performance >= settings.target3 ? 3 : m.performance >= settings.target2 ? 2 : m.performance >= settings.target1 ? 1 : 0
-          const tierColor = tier === 3 ? T.tier3 : tier === 2 ? T.tier2 : tier === 1 ? T.tier1 : '#CBD5E1'
+          const tierColorValue = tierColor(tier)
           const isHighlighted = highlightId === m.id
           return (
             <div
@@ -513,12 +518,12 @@ function RankView({
                 <div style={{ position: 'absolute', left: `${(settings.target1 / trackMax) * 100}%`, top: 0, bottom: 0, width: 0, borderLeft: `1px dashed ${T.tier1}66` }} />
                 <div style={{ position: 'absolute', left: `${(settings.target2 / trackMax) * 100}%`, top: 0, bottom: 0, width: 0, borderLeft: `1px dashed ${T.tier2}66` }} />
                 <div style={{ position: 'absolute', left: `${(settings.target3 / trackMax) * 100}%`, top: 0, bottom: 0, width: 0, borderLeft: `1px dashed ${T.tier3}66` }} />
-                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: tierColor, borderRadius: 6, transition: 'width .5s' }} />
+                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: tierColorValue, borderRadius: 6, transition: 'width .5s' }} />
                 <div style={{ position: 'absolute', left: `${pct}%`, top: '50%', transform: 'translate(-50%, -50%) scaleX(-1)' }}>
                   <div className="runner" style={{ fontSize: 13 }}>🏃</div>
                 </div>
               </div>
-              <div style={{ width: 32, fontSize: 12, fontWeight: 700, color: tierColor, textAlign: 'right', flexShrink: 0 }}>{m.performance}</div>
+              <div style={{ width: 32, fontSize: 12, fontWeight: 700, color: tierColorValue, textAlign: 'right', flexShrink: 0 }}>{m.performance}</div>
             </div>
           )
         })}
