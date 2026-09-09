@@ -79,10 +79,13 @@ function tierColor(tier: number) {
   return tier === 3 ? T.tier3 : tier === 2 ? T.tier2 : tier === 1 ? T.tier1 : '#D6D3D1'
 }
 
-const RUNNER_EMOJIS = ['🐣', '🐰', '🐱', '🐶', '🐻', '🦊', '🏃💨']
-function pickRunnerEmoji(id: number) {
-  const idx = Math.floor(seededRandom(id * 7 + 3) * RUNNER_EMOJIS.length)
-  return RUNNER_EMOJIS[Math.min(idx, RUNNER_EMOJIS.length - 1)]
+// 러너 아이콘 (이모지, 오른쪽을 보도록 flip)
+function RunnerIcon({ tier, size = 15 }: { tier: number; size?: number }) {
+  return (
+    <span style={{ fontSize: size, lineHeight: 1, display: 'inline-block', transform: 'scaleX(-1)' }}>
+      🏃
+    </span>
+  )
 }
 
 export default function PromotionPage() {
@@ -201,6 +204,9 @@ export default function PromotionPage() {
           .promo-title { font-size: 30px !important; }
           .promo-stat-num { font-size: 18px !important; }
           .promo-section-pad { padding-left: 12px !important; padding-right: 12px !important; }
+          .promo-seg-label { font-size: 9.5px !important; }
+          .promo-seg-grid { gap: 6px !important; }
+          .promo-seg-card { padding: 16px 4px !important; }
         }
       `}</style>
 
@@ -225,15 +231,15 @@ export default function PromotionPage() {
         </div>
 
         {/* 구간 달성 현황 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+        <div className="promo-seg-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
           {[
             { label: `1구간 (${settings.target1}↑)`, reward: settings.reward1_text, count: card1Count, color: T.tier1 },
             { label: `2구간 (${settings.target2}↑)`, reward: settings.reward2_text, count: card2Count, color: T.tier2 },
             { label: `3구간 (${settings.target3}↑)`, reward: settings.reward3_text, count: card3Count, color: T.tier3 },
           ].map((s, i) => (
-            <div key={i} style={{ background: T.card, border: `1px solid ${T.border}`, boxShadow: T.shadow, borderRadius: T.radius, padding: '20px 14px', textAlign: 'center' }}>
-              <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{s.label}</div>
-              <div style={{ fontSize: 12, color: s.color, fontWeight: 700, marginBottom: 6 }}>{s.reward}</div>
+            <div key={i} className="promo-seg-card" style={{ background: T.card, border: `1px solid ${T.border}`, boxShadow: T.shadow, borderRadius: T.radius, padding: '20px 10px', textAlign: 'center' }}>
+              <div className="promo-seg-label" style={{ fontSize: 11, color: T.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: s.color, fontWeight: 700, marginBottom: 6, whiteSpace: 'nowrap' }}>{s.reward}</div>
               <div className="promo-stat-num" style={{ fontSize: 24, fontWeight: 700, color: T.textPrimary, letterSpacing: '-0.02em' }}>{s.count}<span style={{ fontSize: 12, color: T.textMuted, fontWeight: 500 }}> 명</span></div>
             </div>
           ))}
@@ -286,7 +292,12 @@ export default function PromotionPage() {
             marginBottom: 20, boxShadow: T.shadow, border: `1px solid ${T.accent}`,
             textAlign: 'center',
           }}>
-            <div style={{ fontSize: 34 }}>🏃</div>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <RunnerIcon
+                tier={searchedManager.performance >= settings.target3 ? 3 : searchedManager.performance >= settings.target2 ? 2 : searchedManager.performance >= settings.target1 ? 1 : 0}
+                size={36}
+              />
+            </div>
             <div style={{ fontSize: 22, fontWeight: 700, color: T.textPrimary, marginTop: 6, letterSpacing: '-0.02em' }}>
               {searchedManager.manager_name}
               {isTeamLead(searchedManager.team) && <span style={{ fontSize: 11, color: '#fff', background: T.tier2, borderRadius: 6, padding: '2px 7px', marginLeft: 6, verticalAlign: 2 }}>팀장</span>}
@@ -396,32 +407,53 @@ function TrackView({
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, boxShadow: T.shadow, borderRadius: T.radius, overflow: 'hidden' }}>
       <div style={{ padding: '20px 24px 0', fontSize: 13, fontWeight: 700, color: T.textPrimary }}>
-        다 함께 출발선에서! · {managers.length}명 <span style={{ color: T.textMuted, fontWeight: 500 }}>(이모지에 마우스를 올려보세요)</span>
+        다 함께 출발선에서! · {managers.length}명 <span style={{ color: T.textMuted, fontWeight: 500 }}>(러너에 마우스를 올려보세요)</span>
       </div>
 
-      <div style={{ position: 'relative', height: trackHeight, margin: '30px 20px 24px', borderRadius: T.radiusSm, overflow: 'visible', background: '#F3E3C7', backgroundImage: 'repeating-linear-gradient(90deg, rgba(139,90,43,0.10) 0 2px, transparent 2px 40px)', border: `1px solid ${T.border}` }}>
+      {/* 만국기 장식 (가을운동회 느낌) */}
+      <div style={{ display: 'flex', margin: '14px 20px 0', overflow: 'hidden', height: 16 }}>
+        {Array.from({ length: 18 }).map((_, i) => (
+          <div key={i} style={{
+            width: 0, height: 0, flexShrink: 0, marginRight: 6,
+            borderLeft: '8px solid transparent', borderRight: '8px solid transparent',
+            borderTop: `14px solid ${['#C1440E', '#4B7F52', '#D4A017', '#7A2E2E', '#355E3B'][i % 5]}`,
+          }} />
+        ))}
+      </div>
 
-        <div style={{ position: 'absolute', left: 8, top: 0, bottom: 0, width: 0, borderLeft: `2px dashed ${T.textMuted}` }} />
-        <div style={{ position: 'absolute', left: 6, top: -1, fontSize: 10, fontWeight: 700, color: T.textSecondary, background: '#F3E3C7', padding: '0 3px' }}>출발</div>
+      <div style={{ position: 'relative', height: trackHeight, margin: '20px 20px 24px', borderRadius: T.radiusSm, overflow: 'visible', background: '#C3DDA0', backgroundImage: 'repeating-linear-gradient(90deg, rgba(93,64,55,0.35) 0 3px, transparent 3px 40px)', border: '1px solid #A9C482' }}>
+
+        <div style={{ position: 'absolute', left: 8, top: 0, bottom: 0, width: 0, borderLeft: '2px dashed #5D4037' }} />
+        <div style={{ position: 'absolute', left: 6, top: -1, fontSize: 10, fontWeight: 700, color: '#fff', background: '#5D4037', padding: '0 4px', borderRadius: 3 }}>출발</div>
 
         {[
-          { t: settings.target1, reward: settings.reward1_text, color: T.tier1 },
-          { t: settings.target2, reward: settings.reward2_text, color: T.tier2 },
-          { t: settings.target3, reward: settings.reward3_text, color: T.tier3 },
+          { t: settings.target1, label: '1구간', color: T.tier1 },
+          { t: settings.target2, label: '2구간', color: T.tier2 },
+          { t: settings.target3, label: '3구간', color: T.tier3 },
         ].map((booth, i) => {
           const leftPct = 6 + (booth.t / trackMax) * 90
           return (
-            <div key={i} style={{ position: 'absolute', left: `${leftPct}%`, top: 0, bottom: 0, width: 0, borderLeft: `1px dashed ${booth.color}88`, zIndex: 3 }}>
-              <div style={{ position: 'absolute', top: -26, left: '50%', transform: 'translateX(-50%)', fontSize: 20, lineHeight: 1 }}>🍁</div>
+            <div key={i} style={{ position: 'absolute', left: `${leftPct}%`, top: 0, bottom: 0, width: 0, borderLeft: `1.5px dashed ${booth.color}99`, zIndex: 3 }}>
+              <div style={{ position: 'absolute', top: -32, left: '50%', transform: 'translateX(-50%)', fontSize: 15, lineHeight: 1 }}>🚩</div>
               <div style={{
-                position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap',
-                background: '#fff', color: booth.color, border: `1px solid ${booth.color}55`, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
+                position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap',
+                background: booth.color, color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
               }}>
-                {booth.reward}
+                {booth.label}
               </div>
             </div>
           )
         })}
+
+        <div style={{ position: 'absolute', left: '96%', top: 0, bottom: 0, width: 0, borderLeft: `2px dashed ${T.textPrimary}55`, zIndex: 3 }}>
+          <div style={{ position: 'absolute', top: -32, left: '50%', transform: 'translateX(-50%)', fontSize: 16, lineHeight: 1 }}>🏁</div>
+          <div style={{
+            position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap',
+            background: T.textPrimary, color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
+          }}>
+            도착
+          </div>
+        </div>
 
         {managers.map(m => {
           const leftPct = 6 + (m.performance / trackMax) * 90
@@ -431,7 +463,6 @@ function TrackView({
           const tipBelow = lane < LANES / 3
           const tier = m.performance >= settings.target3 ? 3 : m.performance >= settings.target2 ? 2 : m.performance >= settings.target1 ? 1 : 0
           const isHighlighted = highlightId === m.id
-          const emoji = pickRunnerEmoji(m.id)
           return (
             <div
               key={m.id}
@@ -441,18 +472,17 @@ function TrackView({
                 zIndex: isHighlighted ? 10 : m.rank <= 3 ? 5 : 2,
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', transform: 'scaleX(-1)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 {m.rank === 1 && <div style={{ fontSize: 11, lineHeight: 1, marginBottom: 1 }}>👑</div>}
                 {(m.rank === 2 || m.rank === 3) && <div style={{ fontSize: 10, lineHeight: 1, marginBottom: 1 }}>🔥</div>}
                 <div
                   className="runner"
                   style={{
-                    fontSize: m.rank <= 3 ? 15 : 12,
                     filter: isHighlighted ? `drop-shadow(0 0 4px ${T.accent})` : m.rank === 1 ? 'drop-shadow(0 0 3px #F59E0B)' : 'none',
                     animationDelay: `${(m.id % 10) * 0.12}s`,
                   }}
                 >
-                  {tier > 0 ? emoji : '🐌'}
+                  <RunnerIcon tier={tier} size={m.rank <= 3 ? 18 : 14} />
                 </div>
               </div>
               <div className="tip" style={tipBelow ? { bottom: 'auto', top: '130%' } : undefined}>{m.manager_name}{isTeamLead(m.team) ? ' (팀장)' : ''} · {m.performance}</div>
@@ -519,8 +549,8 @@ function RankView({
                 <div style={{ position: 'absolute', left: `${(settings.target2 / trackMax) * 100}%`, top: 0, bottom: 0, width: 0, borderLeft: `1px dashed ${T.tier2}66` }} />
                 <div style={{ position: 'absolute', left: `${(settings.target3 / trackMax) * 100}%`, top: 0, bottom: 0, width: 0, borderLeft: `1px dashed ${T.tier3}66` }} />
                 <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: tierColorValue, borderRadius: 6, transition: 'width .5s' }} />
-                <div style={{ position: 'absolute', left: `${pct}%`, top: '50%', transform: 'translate(-50%, -50%) scaleX(-1)' }}>
-                  <div className="runner" style={{ fontSize: 13 }}>🏃</div>
+                <div style={{ position: 'absolute', left: `${pct}%`, top: '50%', transform: 'translate(-50%, -50%)' }}>
+                  <div className="runner"><RunnerIcon tier={tier} size={14} /></div>
                 </div>
               </div>
               <div style={{ width: 32, fontSize: 12, fontWeight: 700, color: tierColorValue, textAlign: 'right', flexShrink: 0 }}>{m.performance}</div>
