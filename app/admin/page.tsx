@@ -605,12 +605,15 @@ function GiftSettingsPanel() {
 }
 
 // ============================================================
-// 🏃 프로모션 현황 설정 (신규 기능)
+// 🏃 프로모션 현황 설정
+// - 구간별 조건: 신청 N 이상 + 진행 M 이상 (둘 다 충족해야 확정)
+// - 실적 업로드: 지사 / 팀 / 매니저 / 신청 / 진행
 // ============================================================
-type ManagerRow = { branch: string; team: string; manager_name: string; performance: number }
+type ManagerRow = { branch: string; team: string; manager_name: string; performance: number; progress: number }
 type PromoSettings = {
   title: string
-  target1: number; target2: number; target3: number
+  target1: number; target2: number; target3: number          // 신청 기준
+  progress1: number; progress2: number; progress3: number    // 진행 기준 (0 = 조건 없음)
   reward1_text: string; reward2_text: string; reward3_text: string
   current_day: number; total_day: number
   cheer_messages: string[]
@@ -619,22 +622,28 @@ type PromoSettings = {
 const defaultPromoSettings: PromoSettings = {
   title: '프로모션 달성 현황',
   target1: 5, target2: 10, target3: 15,
+  progress1: 0, progress2: 0, progress3: 0,
   reward1_text: '1만원권', reward2_text: '2만원권', reward3_text: '3만원권',
   current_day: 3, total_day: 5,
   cheer_messages: ['조금만 더 힘내요', '거의 다 왔어요, 파이팅', '오늘도 달리는 중', '한 걸음만 더', '끝까지 힘내주세요'],
+}
+
+function toNumber(v: unknown) {
+  return Number(String(v ?? '').replace(/[^0-9.-]/g, '')) || 0
 }
 
 function parsePastedTable(text: string): ManagerRow[] {
   const lines = text.trim().split('\n').map(l => l.trim()).filter(Boolean)
   if (lines.length === 0) return []
 
-  const header = lines[0].split('\t')
-  const looksLikeHeader = header.some(h => h.includes('매니저') || h.includes('지사') || h.includes('실적'))
+  const header = lines[0].split('\t').map(h => h.trim())
+  const looksLikeHeader = header.some(h => ['매니저', '지사', '실적', '신청', '진행'].some(k => h.includes(k)))
   const idx = {
     branch: header.findIndex(h => h.includes('지사')),
     team: header.findIndex(h => h.includes('팀')),
     name: header.findIndex(h => h.includes('매니저') || h.includes('이름')),
-    perf: header.findIndex(h => h.includes('실적')),
+    apply: header.findIndex(h => h.includes('신청') || h.includes('실적')),
+    progress: header.findIndex(h => h.includes('진행')),
   }
 
   const dataLines = looksLikeHeader ? lines.slice(1) : lines
@@ -644,24 +653,29 @@ function parsePastedTable(text: string): ManagerRow[] {
     const cols = line.split('\t').map(c => c.trim())
     if (cols.length < 2) continue
 
-    let branch = '', team = '', name = '', perf = ''
+    let branch = '', team = '', name = '', apply = '', progress = ''
     if (looksLikeHeader && idx.name >= 0) {
       branch = idx.branch >= 0 ? cols[idx.branch] : ''
       team = idx.team >= 0 ? cols[idx.team] : ''
       name = cols[idx.name]
-      perf = idx.perf >= 0 ? cols[idx.perf] : ''
+      apply = idx.apply >= 0 ? cols[idx.apply] : ''
+      progress = idx.progress >= 0 ? cols[idx.progress] : ''
     } else {
-      // 헤더가 없거나 못 찾으면: NO 지사 팀 매니저 실적 (보상) 순서로 추정
+      // 헤더가 없거나 못 찾으면: (NO) 지사 팀 매니저 신청 진행 순서로 추정
       const c = cols[0]?.match(/^\d+$/) ? cols.slice(1) : cols
       branch = c[0] || ''
       team = c[1] || ''
       name = c[2] || ''
-      perf = c[3] || ''
+      apply = c[3] || ''
+      progress = c[4] || ''
     }
 
     if (!name) continue
-    const performance = Number(String(perf).replace(/[^0-9.-]/g, '')) || 0
-    rows.push({ branch, team, manager_name: name, performance })
+    rows.push({
+      branch, team, manager_name: name,
+      performance: toNumber(apply),
+      progress: toNumber(progress),
+    })
   }
   return rows
 }
@@ -686,6 +700,9 @@ function PromotionSettingsPanel() {
         target1: s.target1 ?? defaultPromoSettings.target1,
         target2: s.target2 ?? defaultPromoSettings.target2,
         target3: s.target3 ?? defaultPromoSettings.target3,
+        progress1: Number(s.progress1) || 0,
+        progress2: Number(s.progress2) || 0,
+        progress3: Number(s.progress3) || 0,
         reward1_text: s.reward1_text || defaultPromoSettings.reward1_text,
         reward2_text: s.reward2_text || defaultPromoSettings.reward2_text,
         reward3_text: s.reward3_text || defaultPromoSettings.reward3_text,
@@ -694,8 +711,17 @@ function PromotionSettingsPanel() {
         cheer_messages: (Array.isArray(s.cheer_messages) && s.cheer_messages.length > 0) ? s.cheer_messages : defaultPromoSettings.cheer_messages,
       })
     }
-    const { data: rows } = await supabase.from('promotion_managers').select('branch,team,manager_name,performance').order('performance', { ascending: false })
-    if (rows) setCurrentManagers(rows as ManagerRow[])
+    const { data: rows } = await supabase
+      .from('promotion_managers')
+      .select('branch,team,manager_name,performance,progress')
+      .order('performance', { ascending: false })
+    if (rows) {
+      setCurrentManagers(rows.map((r: any) => ({
+        ...r,
+        performance: Number(r.performance) || 0,
+        progress: Number(r.progress) || 0,
+      })))
+    }
     setLoaded(true)
   }
 
@@ -753,13 +779,16 @@ function PromotionSettingsPanel() {
 
   if (!loaded) return null
 
+  const th: React.CSSProperties = { padding: '6px 10px', textAlign: 'left' }
+  const thR: React.CSSProperties = { padding: '6px 10px', textAlign: 'right' }
+
   return (
     <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.10)', overflow: 'hidden' }}>
 
       <div style={{ background: 'linear-gradient(135deg, #2ecc71, #27ae60)', padding: '28px 36px' }}>
         <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', textAlign: 'center' }}>🏃 프로모션 현황판 설정</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 6, textAlign: 'center' }}>
-          여기서 저장한 실적/목표치가 공개 페이지( /promotion )에 실시간으로 반영됩니다
+          여기서 저장한 실적/목표치가 공개 페이지( /promotion )에 반영됩니다
         </div>
       </div>
 
@@ -808,28 +837,45 @@ function PromotionSettingsPanel() {
           >＋ 응원 문구 추가</button>
         </div>
 
-        {/* 구간 목표치 */}
+        {/* 구간 목표치: 신청 + 진행 */}
         <div style={sectionBox}>
-          <div style={sectionLabel}>구간별 목표치 &amp; 혜택</div>
+          <div style={sectionLabel}>구간별 목표치 &amp; 혜택 (신청과 진행을 모두 넘어야 확정)</div>
           {[1, 2, 3].map(n => (
-            <div key={n} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#2ecc71', minWidth: 46 }}>{n}구간</span>
+            <div key={n} style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#2ecc71', minWidth: 40 }}>{n}구간</span>
+
+              <span style={{ fontSize: 12, color: '#555', fontWeight: 600 }}>신청</span>
               <input
                 type="number"
                 value={(settings as any)[`target${n}`]}
                 onChange={e => set(`target${n}` as keyof PromoSettings, Number(e.target.value) as any)}
-                placeholder="실적 기준"
-                style={{ ...optionInput, maxWidth: 100 }}
+                placeholder="신청 기준"
+                style={{ ...optionInput, maxWidth: 80 }}
+              />
+              <span style={{ fontSize: 12, color: '#888' }}>이상 +</span>
+
+              <span style={{ fontSize: 12, color: '#555', fontWeight: 600 }}>진행</span>
+              <input
+                type="number"
+                min={0}
+                value={(settings as any)[`progress${n}`] || ''}
+                onChange={e => set(`progress${n}` as keyof PromoSettings, (e.target.value === '' ? 0 : Number(e.target.value)) as any)}
+                placeholder="조건 없음"
+                style={{ ...optionInput, maxWidth: 90 }}
               />
               <span style={{ fontSize: 12, color: '#888' }}>이상 →</span>
+
               <input
                 value={(settings as any)[`reward${n}_text`]}
                 onChange={e => set(`reward${n}_text` as keyof PromoSettings, e.target.value as any)}
                 placeholder="혜택 (예: 1만원권)"
-                style={optionInput}
+                style={{ ...optionInput, minWidth: 160 }}
               />
             </div>
           ))}
+          <div style={{ fontSize: 11, color: '#aaa', marginTop: 4, lineHeight: 1.6 }}>
+            진행 칸을 비우면 진행 조건 없이 신청만으로 판정해요.
+          </div>
           <button onClick={saveSettings} disabled={saving} style={{ ...addBtn, borderStyle: 'solid', color: '#2ecc71', borderColor: '#2ecc71', marginTop: 8 }}>
             {saving ? '저장 중...' : '설정 저장'}
           </button>
@@ -839,16 +885,17 @@ function PromotionSettingsPanel() {
 
         {/* 실적 업로드 */}
         <div style={sectionBox}>
-          <div style={sectionLabel}>매니저 실적 업로드 (지사 / 팀 / 매니저 / 실적)</div>
+          <div style={sectionLabel}>매니저 실적 업로드 (지사 / 팀 / 매니저 / 신청 / 진행)</div>
           <div style={{ fontSize: 12, color: '#888', marginBottom: 12, lineHeight: 1.6 }}>
-            엑셀에서 <b>지사, 팀, 매니저, 실적</b> 컬럼(헤더 포함)을 그대로 복사해서 아래에 붙여넣으세요.<br />
+            엑셀에서 <b>지사, 팀, 매니저, 신청, 진행</b> 컬럼(헤더 포함)을 그대로 복사해서 아래에 붙여넣으세요.<br />
+            헤더에 '신청'(또는 '실적')과 '진행'이 들어있으면 자동으로 인식해요.<br />
             또는 CSV 파일을 업로드해도 됩니다. 저장하면 기존 실적 데이터를 <b>전체 교체</b>합니다.
           </div>
 
           <textarea
             value={pasteText}
             onChange={e => handlePasteChange(e.target.value)}
-            placeholder={'지사\t팀\t매니저\t실적\n동부\t1팀 T\t김지은\t12\n경인\t2팀\t양미숙\t10\n...'}
+            placeholder={'지사\t팀\t매니저\t신청\t진행\n동부\t1팀 T\t김지은\t85\t12\n경인\t2팀\t양미숙\t62\t10\n...'}
             rows={6}
             style={{ ...fullInput, resize: 'vertical', fontFamily: 'monospace', fontSize: 12, lineHeight: 1.6, marginBottom: 10 }}
           />
@@ -865,10 +912,11 @@ function PromotionSettingsPanel() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                   <thead>
                     <tr style={{ background: '#f8f9ff' }}>
-                      <th style={{ padding: '6px 10px', textAlign: 'left' }}>지사</th>
-                      <th style={{ padding: '6px 10px', textAlign: 'left' }}>팀</th>
-                      <th style={{ padding: '6px 10px', textAlign: 'left' }}>매니저</th>
-                      <th style={{ padding: '6px 10px', textAlign: 'right' }}>실적</th>
+                      <th style={th}>지사</th>
+                      <th style={th}>팀</th>
+                      <th style={th}>매니저</th>
+                      <th style={thR}>신청</th>
+                      <th style={thR}>진행</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -878,6 +926,7 @@ function PromotionSettingsPanel() {
                         <td style={{ padding: '5px 10px' }}>{r.team}</td>
                         <td style={{ padding: '5px 10px' }}>{r.manager_name}</td>
                         <td style={{ padding: '5px 10px', textAlign: 'right' }}>{r.performance}</td>
+                        <td style={{ padding: '5px 10px', textAlign: 'right' }}>{r.progress}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -898,12 +947,21 @@ function PromotionSettingsPanel() {
           ) : (
             <div style={{ maxHeight: 200, overflowY: 'auto', border: '1.5px solid #eee', borderRadius: 8 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: '#f8f9ff' }}>
+                    <th style={th}>지사 · 팀</th>
+                    <th style={th}>매니저</th>
+                    <th style={thR}>신청</th>
+                    <th style={thR}>진행</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {currentManagers.map((r, i) => (
-                    <tr key={i} style={{ borderTop: i === 0 ? 'none' : '1px solid #f0f0f0' }}>
+                    <tr key={i} style={{ borderTop: '1px solid #f0f0f0' }}>
                       <td style={{ padding: '5px 10px', color: '#888' }}>{r.branch} · {r.team}</td>
                       <td style={{ padding: '5px 10px', fontWeight: 600 }}>{r.manager_name}</td>
                       <td style={{ padding: '5px 10px', textAlign: 'right', fontWeight: 700, color: '#2ecc71' }}>{r.performance}</td>
+                      <td style={{ padding: '5px 10px', textAlign: 'right', fontWeight: 600, color: '#555' }}>{r.progress}</td>
                     </tr>
                   ))}
                 </tbody>
